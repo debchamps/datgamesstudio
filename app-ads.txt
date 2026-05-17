@@ -1,0 +1,23 @@
+# ============================================================
+# app-ads.txt for Dat Games Studio
+# https://www.datgamesstudio.com/app-ads.txt
+#
+# Covers: Bray Card Game, Callbreak Game, Hearts Card Game,
+#         Spades Classic, Spades King Classic, Tarneeb,
+#         Twenty Nine Card Game, Hearts Offline
+# ============================================================
+
+# Google AdMob — primary account (all apps)
+google.com, pub-1368766915086140, DIRECT, f08c47fec0942fa0
+
+# Google — secondary account
+google.com, pub-1769730524815450, DIRECT, f08c47fec0942fa0
+
+# AppLovin MAX — bidding partner (Bray, Callbreak)
+applovin.com, 5d1720aa960ce31399234572b5be62e5, DIRECT, eed0a726a34a0ef9
+
+# Meta Audience Network (Facebook)
+facebook.com, 926905398299149, DIRECT, c3e20eee3f780d68
+
+# Tappx
+tappx.com, r3a4485b6, DIRECT, 9f375a07da0318ec
