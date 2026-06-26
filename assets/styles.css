@@ -544,6 +544,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; }
 .theme-whist { --accent: var(--green); }
 .theme-twentynine { --accent: var(--gold-deep); }
 .theme-tarneeb { --accent: var(--plum); }
+.theme-hokm { --accent: #b0413c; }
+.theme-hokm .card-cta { background: #b0413c; }
+.theme-hokm .card-cta:hover { background: #8f322e; }
 .theme-hearts .card-cta,
 .theme-bray .card-cta { background: var(--red); }
 .theme-hearts .card-cta:hover,
