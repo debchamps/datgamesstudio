@@ -356,13 +356,22 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; }
   flex-wrap: wrap;
   gap: 16px;
 }
+.logo-row a {
+  display: inline-flex;
+  border-radius: 14px;
+  transition: transform 200ms ease;
+}
+.logo-row a:hover,
+.logo-row a:focus-visible {
+  transform: translateY(-4px) scale(1.04);
+  outline: none;
+}
+.logo-row a:focus-visible { box-shadow: 0 0 0 3px var(--gold); }
 .logo-row img {
   width: 60px; height: 60px;
   border-radius: 14px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
-  transition: transform 200ms ease;
 }
-.logo-row img:hover { transform: translateY(-4px) scale(1.04); }
 
 /* ---------- Sections ---------- */
 .section { padding: 92px 32px; }
