@@ -1,0 +1,24 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.datgames.bray",
+      "sha256_cert_fingerprints": [
+        "0E:9B:BF:05:0F:72:7B:98:20:A9:32:6B:45:59:00:7A:F5:2D:A2:E8:41:B3:33:F6:0B:00:51:C0:25:AE:CE:8A",
+        "3A:68:06:FD:3C:21:06:0E:B6:70:A3:D2:3C:E1:54:0B:BA:98:6C:31:1C:FD:15:A0:61:3A:5B:D7:6B:42:CD:F1"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "debakesh.com.twentynine",
+      "sha256_cert_fingerprints": [
+        "0E:9B:BF:05:0F:72:7B:98:20:A9:32:6B:45:59:00:7A:F5:2D:A2:E8:41:B3:33:F6:0B:00:51:C0:25:AE:CE:8A",
+        "7A:DC:5A:63:85:A9:94:A6:32:3B:12:D2:7C:85:06:9E:8D:1B:35:47:05:7D:7C:5F:C2:1A:29:01:B8:E3:C4:C0"
+      ]
+    }
+  }
+]
