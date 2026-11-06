@@ -87,7 +87,7 @@
   position: relative;
   isolation: isolate;
   /* window height minus site header, toolbar, hand and gaps, so everything fits */
-  height: clamp(260px, calc(100svh - 70px - 58px - var(--cw) * 1.4 - 74px), 600px);
+  height: clamp(260px, calc(100svh - 70px - 58px - var(--cw) * 1.4 - 96px), 600px);
   border-radius: 26px;
   background:
     radial-gradient(circle at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.25) 100%),
@@ -162,7 +162,22 @@
   50% { box-shadow: 0 0 0 10px rgba(242, 193, 78, 0), 0 6px 16px rgba(0, 0, 0, 0.45); }
 }
 .seat-north { top: 16px; left: 50%; transform: translateX(-50%); }
-.seat-south { bottom: 16px; left: 22px; }
+.seat-south {
+  left: 50%;
+  bottom: -22px;
+  z-index: 6;
+  transform: translateX(-50%);
+  flex-direction: row;
+  gap: 10px;
+  padding: 4px 16px 4px 4px;
+  background: rgba(5, 22, 16, 0.94);
+  border: 1px solid var(--gold-soft);
+  border-radius: 999px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+}
+.seat-south img { width: 40px; height: 40px; border-width: 2px; }
+.seat-south > div { min-width: 0; padding: 0; background: none; border: 0; box-shadow: none; text-align: left; }
+.seat-south.is-turn { border-color: var(--gold); }
 .seat-west { left: 18px; top: 42%; transform: translateY(-50%); }
 .seat-east { right: 18px; top: 42%; transform: translateY(-50%); }
 
@@ -257,7 +272,7 @@
 /* ---------- Status line (sits on the bottom rail) ---------- */
 .status {
   position: absolute;
-  left: 50%; bottom: 12px;
+  left: 50%; bottom: 34px;
   z-index: 5;
   transform: translateX(-50%);
   width: max-content;
@@ -337,7 +352,7 @@
   justify-content: center;
   align-items: flex-end;
   min-height: calc(var(--cw) * 1.4 + 30px);
-  margin-top: -6px;
+  margin-top: 16px;
   padding: 30px 12px 6px;
 }
 .hand-card {
@@ -446,7 +461,7 @@
   .score-pill { gap: 8px; padding: 6px 10px; font-size: 12px; }
   .score-pill small { display: none; }
   .bar-btn { min-height: 38px; padding: 6px 10px; font-size: 13px; }
-  .table { height: clamp(320px, calc(100svh - 60px - 52px - var(--cw) * 1.4 - 64px), 480px); border-radius: 20px; }
+  .table { height: clamp(320px, calc(100svh - 60px - 52px - var(--cw) * 1.4 - 84px), 480px); border-radius: 20px; }
   .seat img { width: 40px; height: 40px; border-width: 2px; }
   .seat > div { min-width: 0; max-width: 92px; padding: 3px 7px 4px; border-radius: 9px; }
   .seat strong { font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; }
@@ -454,7 +469,8 @@
   .seat-north { top: 38px; }
   .seat-west { left: 6px; top: 44%; }
   .seat-east { right: 6px; top: 44%; }
-  .seat-south { left: 8px; bottom: 44px; }
+  .seat-south { bottom: -18px; padding: 3px 12px 3px 3px; gap: 7px; }
+  .seat-south img { width: 32px; height: 32px; }
   .table-chips { top: 6px; left: 6px; right: 6px; }
   .table-chips span { padding: 4px 9px; font-size: 11px; }
   .table-chips .sub { display: none; }
@@ -463,13 +479,13 @@
   .slot-south { --oy: 52%; }
   .slot-west { --ox: -64%; }
   .slot-east { --ox: 64%; }
-  .status { bottom: 8px; max-width: calc(100% - 20px); padding: 6px 12px; font-size: 12px; }
+  .status { bottom: 26px; max-width: calc(100% - 20px); padding: 5px 12px; font-size: 12px; }
   .bid-panel { width: calc(100% - 20px); padding: 14px 12px; }
   .bid-buttons { grid-template-columns: repeat(4, 1fr); }
   .bid-buttons-29 { grid-template-columns: repeat(5, 1fr); }
   .bid-btn { min-height: 44px; }
   .suit-btn b { font-size: 28px; }
-  .hand { padding: 22px 4px 6px; min-height: calc(var(--cw) * 1.4 + 30px); }
+  .hand { margin-top: 12px; padding: 24px 4px 6px; min-height: calc(var(--cw) * 1.4 + 30px); }
   .hand-card { margin-left: calc(var(--cw) * -0.5); }
   .hand-card.is-legal { transform: translateY(-6px); }
   .hand-card.is-legal:hover { transform: translateY(-16px); }
@@ -480,16 +496,21 @@
 }
 @media (max-width: 380px) { .play-page { --cw: 46px; --tw: 48px; } }
 @media (min-width: 761px) and (max-height: 760px) {
+  .play-page { --tw: clamp(44px, 8.2vh, 80px); }
+  .trick-slot { top: 45%; }
+  .slot-north { --oy: -50%; }
+  .slot-south { --oy: 50%; }
+  .slot-west { --ox: -66%; }
+  .slot-east { --ox: 66%; }
   .seat { flex-direction: row; gap: 6px; }
   .seat img { width: 40px; height: 40px; border-width: 2px; }
   .seat > div { min-width: 0; padding: 4px 9px; text-align: left; }
   .seat-north { top: 12px; }
-  .seat-south { bottom: 12px; left: 16px; }
   .seat-west { left: 14px; top: 40%; }
   .seat-east { right: 14px; top: 40%; flex-direction: row-reverse; }
   .seat-east > div { text-align: right; }
   .table-chips { top: 10px; }
-  .status { bottom: 10px; padding: 6px 14px; font-size: 13px; }
+  .status { bottom: 30px; padding: 6px 14px; font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .trick-slot, .dialog, .bid-panel { animation: none; }
