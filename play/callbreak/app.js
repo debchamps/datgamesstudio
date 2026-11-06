@@ -212,6 +212,7 @@ function showMatchOver() {
   render();
   const ranked = E.SEATS.slice().sort((a, b) => state.matchScores[b] - state.matchScores[a]);
   const youWon = state.matchWinner === "SOUTH";
+  window.datTrack && datTrack('match_finish', { result: youWon ? 'won' : 'lost' });
   const place = ranked.indexOf("SOUTH") + 1;
   const list = ranked
     .map((s, i) => `<li class="${s === "SOUTH" ? "me" : ""}"><span>${i + 1}</span><strong>${NAMES[s]}</strong><em>${state.matchScores[s].toFixed(1)}</em></li>`)
@@ -234,6 +235,7 @@ function showMatchOver() {
 }
 
 function newMatch() {
+  window.datTrack && datTrack('game_start');
   run++;
   el.overlay.hidden = true;
   el.bidButtons.replaceChildren();

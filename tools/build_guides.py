@@ -385,14 +385,41 @@ def head(title: str, desc: str, path: str, ld: list[dict]) -> str:
       gtag('js', new Date());
       gtag('config', 'AW-7662884847');
       gtag('config', 'G-677P55P83T');
+      var DAT_APPS = {{
+        'com.datgames.bridge':'bridge','com.datgames.snakeuncoil':'snake-uncoil','com.datgames.cardadda':'card-adda',
+        'com.datgames.hearts':'hearts','com.datgames.spade':'spades','com.datgames.CallbreakCardGame':'callbreak',
+        'com.datgames.bray':'bray','com.datgames.whist':'whist','debakesh.com.twentynine':'twenty-nine',
+        'com.datgames.tarneeb':'tarneeb','com.datgames.hokm':'hokm',
+        'id6827570630':'bridge','id6826481395':'snake-uncoil','id6816377998':'card-adda','id1607650705':'bray',
+        'id1606221936':'callbreak','id1620761646':'hearts','id6443504649':'spades','id6785555890':'tarneeb','id6443517269':'whist'
+      }};
+      var pg = location.pathname.match(/^\\/play\\/([^\\/]+)\\//);
+      window.DAT_GAME = pg ? pg[1] : '';
+      window.datTrack = function (name, params) {{
+        params = params || {{}};
+        if (window.DAT_GAME && !params.game) params.game = window.DAT_GAME;
+        try {{ gtag('event', name, params); }} catch (e) {{}}
+      }};
       document.addEventListener('click', function (e) {{
-        var a = e.target.closest && e.target.closest('a');
+        var t = e.target, a = t.closest && t.closest('a');
+        if (window.DAT_GAME && t.closest && t.closest('.hand-card') && !window.DAT_ENGAGED) {{
+          window.DAT_ENGAGED = 1;
+          datTrack('game_engaged');
+        }}
         if (!a) return;
         var h = a.href || '';
-        if (a.classList.contains('store-btn') || /play\.google\.com|apps\.apple\.com/.test(h)) {{
-          gtag('event', 'store_click', {{ store: /apple/.test(h) ? 'app_store' : 'google_play', page_path: location.pathname, link_url: h }});
-        }} else if (/play-big|play-card-btn|play-tile|phc-/.test(a.className) || /^\/play\//.test(a.getAttribute('href') || '')) {{
-          gtag('event', 'play_click', {{ page_path: location.pathname, link_url: h }});
+        if (/play\\.google\\.com\\/store|apps\\.apple\\.com/.test(h)) {{
+          var m = h.match(/[?&]id=([\\w.]+)/) || h.match(/\\/(id\\d+)/);
+          var p = h.match(/utm_content=(\\w+)/) || h.match(/[?&]ct=(\\w+)/);
+          datTrack('store_click', {{
+            store: /apple/.test(h) ? 'app_store' : 'google_play',
+            game: m && DAT_APPS[m[1]] || 'all_games',
+            placement: p ? p[1] : '',
+            page_path: location.pathname
+          }});
+        }} else {{
+          var g = (a.getAttribute('href') || '').match(/^\\/play\\/([\\w-]*)/);
+          if (g) datTrack('play_click', {{ game: g[1] || 'hub', page_path: location.pathname }});
         }}
       }});
     </script>

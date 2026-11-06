@@ -273,6 +273,7 @@ function showRoundOver() {
 
 function showMatchOver() {
   const won = state.matchWinnerTeam === 1;
+  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Match complete</p>
@@ -297,6 +298,7 @@ function resetHints() {
 }
 
 function newMatch() {
+  window.datTrack && datTrack('game_start');
   run++;
   notice = "";
   el.overlay.hidden = true;

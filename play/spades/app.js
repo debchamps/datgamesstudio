@@ -231,6 +231,7 @@ function showRoundOver() {
 
 function showMatchOver() {
   const won = state.matchWinnerTeam === 1;
+  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
   const mercy = Math.min(state.teamScores[1], state.teamScores[2]) <= E.MERCY;
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
@@ -250,6 +251,7 @@ function showMatchOver() {
 }
 
 function newMatch() {
+  window.datTrack && datTrack('game_start');
   run++;
   el.overlay.hidden = true;
   hintCard = null;

@@ -279,6 +279,7 @@ function showMatchOver() {
   const order = ranking();
   const place = order.indexOf("SOUTH") + 1;
   const won = order[0] === "SOUTH";
+  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
   const list = order
     .map((s, i) => `<li class="${s === "SOUTH" ? "me" : ""}"><span>${i + 1}</span><strong>${NAMES[s]}</strong><em>${state.matchScores[s]}</em></li>`)
     .join("");
@@ -300,6 +301,7 @@ function showMatchOver() {
 }
 
 function newMatch() {
+  window.datTrack && datTrack('game_start');
   run++;
   el.overlay.hidden = true;
   selected = [];

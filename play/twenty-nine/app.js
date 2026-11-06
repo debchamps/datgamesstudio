@@ -426,6 +426,7 @@ function showRoundOver() {
 
 function showMatchOver() {
   const won = match.us >= E.MATCH_SCORE || match.them <= -E.MATCH_SCORE;
+  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Match complete</p>
@@ -460,6 +461,7 @@ function startRound() {
 }
 
 function newMatch() {
+  window.datTrack && datTrack('game_start');
   match = { us: 0, them: 0, dealer: "WEST", round: 1 };
   el.overlay.hidden = true;
   startRound();
