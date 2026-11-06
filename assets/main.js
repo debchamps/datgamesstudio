@@ -52,3 +52,14 @@ if (filters) {
     });
   });
 }
+
+// Game pages: on short windows, scroll so the whole table and hand are on screen.
+const stage = document.querySelector(".game-wrap");
+if (stage) {
+  window.addEventListener("load", () => {
+    const rect = stage.getBoundingClientRect();
+    if (rect.bottom <= window.innerHeight) return;
+    const headerHeight = header ? header.offsetHeight : 0;
+    window.scrollTo({ top: window.scrollY + rect.top - headerHeight, behavior: "instant" });
+  });
+}
