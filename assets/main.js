@@ -32,3 +32,23 @@ if (toggle && nav) {
 
 window.addEventListener("scroll", syncHeader, { passive: true });
 syncHeader();
+
+const filters = document.querySelector("[data-filters]");
+const games = document.querySelectorAll("[data-games] .game-card");
+
+if (filters) {
+  filters.addEventListener("click", (event) => {
+    const chip = event.target.closest("[data-filter]");
+    if (!chip) return;
+    const filter = chip.dataset.filter;
+    filters.querySelectorAll("[data-filter]").forEach((button) => {
+      const active = button === chip;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    games.forEach((card) => {
+      const tags = (card.dataset.tags || "").split(" ");
+      card.hidden = filter !== "all" && !tags.includes(filter);
+    });
+  });
+}
