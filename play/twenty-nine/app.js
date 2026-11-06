@@ -5,6 +5,8 @@ const GLYPH = { S: "♠", H: "♥", C: "♣", D: "♦" };
 const SUIT_NAME = { S: "Spades", H: "Hearts", C: "Clubs", D: "Diamonds" };
 const FAST = new URLSearchParams(location.search).has("fast"); // test mode: skip the pacing delays
 const SPEED = FAST ? { bid: 5, play: 5, trickHold: 5 } : { bid: 750, play: 750, trickHold: 1100 };
+const ctxNow = () => ({ ourSetScore: match.us, theirSetScore: match.them, positiveScoring: false });
+const STEP_LABEL = { DOUBLE: "Double", REDOUBLE: "Redouble", SINGLE_HAND: "Single Hand" };
 
 const $ = (sel) => document.querySelector(sel);
 const el = {
@@ -16,6 +18,9 @@ const el = {
   bidInfo: $("[data-bid-info]"),
   bidButtons: $("[data-bid-buttons]"),
   trumpPanel: $("[data-trump-panel]"),
+  challenge: $("[data-challenge]"),
+  challengeInfo: $("[data-challenge-info]"),
+  challengeButtons: $("[data-challenge-buttons]"),
   trumpButtons: $("[data-trump-buttons]"),
   trumpChip: $("[data-trump-chip]"),
   contract: $("[data-contract]"),
@@ -33,6 +38,7 @@ let hintCard = null;
 let hintBid = undefined; // number = bid this, null = pass, undefined = none
 let hintTrump = null;
 let hintReveal = false;
+let hintChallenge = undefined; // true = call it, false = decline, undefined = none
 let shownTrick = null;
 const seenTrick = new Set(); // cards already on the table, so only a new card animates in
 let bubbles = {}; // seat -> short text shown on the chip during bidding
@@ -60,11 +66,12 @@ function render() {
     seat.querySelector("[data-name]").textContent = NAMES[s] + (s === "NORTH" ? " (partner)" : "");
     const pts = state.pointsWon[s];
     const tricks = state.tricksWon[s];
-    const call = bubbles[s] ? bubbles[s] : state.phase === "PLAYING" || state.phase === "ROUND_OVER" ? `${tricks} tricks · ${pts} pts` : "";
+    const call = bubbles[s] ? bubbles[s] : E.sitOutSeat(state) === s ? "Sitting out" : state.phase === "PLAYING" || state.phase === "ROUND_OVER" ? `${tricks} tricks · ${pts} pts` : "";
     seat.querySelector("[data-call]").textContent = call || "–";
     seat.classList.toggle("is-turn", state.turn === s && state.phase !== "ROUND_OVER" && !shownTrick);
     seat.classList.toggle("is-winner", !!shownTrick && shownTrick.winner === s);
     seat.classList.toggle("is-bidder", !!bidderSeat && state.phase !== "BIDDING" && state.trumpSetter === s);
+    seat.classList.toggle("is-sitout", E.sitOutSeat(state) === s);
   }
 
   // Contract + trump chips
@@ -72,12 +79,18 @@ function render() {
   el.contract.hidden = !inPlay;
   if (inPlay) {
     const target = E.winningBid(state.bidding);
-    el.contract.textContent = `${NAMES[state.trumpSetter]} bid ${target}`;
+    const stake = state.multiplier === 4 ? " · Redoubled ×4" : state.multiplier === 2 ? " · Doubled ×2" : "";
+    el.contract.textContent = state.isSingleHand
+      ? `${NAMES[state.singleHandPlayer]}: Single Hand · all 8 tricks${stake}`
+      : `${NAMES[state.trumpSetter]} bid ${target}${stake}`;
   }
   el.trumpChip.hidden = !inPlay;
   if (inPlay) {
-    const revealed = E.isTrumpRevealed(state) || state.phase === "ROUND_OVER";
-    if (revealed) {
+    const revealed = E.isTrumpRevealed(state) || (state.phase === "ROUND_OVER" && !state.isSingleHand);
+    if (state.isSingleHand) {
+      el.trumpChip.className = "chip-trump hidden-trump";
+      el.trumpChip.innerHTML = `No trump <b>–</b> single hand`;
+    } else if (revealed) {
       el.trumpChip.className = "chip-trump " + (state.trump === "H" || state.trump === "D" ? "red" : "");
       el.trumpChip.innerHTML = `Trump <b>${GLYPH[state.trump]}</b> ${SUIT_NAME[state.trump]}`;
     } else if (state.trumpSetter === "SOUTH") {
@@ -155,12 +168,33 @@ function render() {
     }
   }
 
+  // Double / Redouble / Single Hand panel
+  const asking = state.phase === "CHALLENGE" && E.challengeDecider(state) === "SOUTH";
+  el.challenge.hidden = !asking;
+  el.challengeButtons.replaceChildren();
+  if (asking) {
+    const step = state.challenge.step;
+    const stakeNote = { DOUBLE: "Double: stakes ×2 for both sides.", REDOUBLE: `${NAMES[state.doubler]} doubled. Redouble for ×4?`, SINGLE_HAND: "Single Hand: win all 8 tricks alone for +3 (−3 if you lose one). Your partner sits out." }[step];
+    el.challengeInfo.textContent = step === "DOUBLE" ? `${NAMES[state.trumpSetter]} bid ${E.winningBid(state.bidding)}. ${stakeNote}` : stakeNote;
+    const yes = document.createElement("button");
+    yes.type = "button";
+    yes.className = "bid-btn bid-yes" + (hintChallenge === true ? " is-hint" : "");
+    yes.textContent = STEP_LABEL[step] + (step === "DOUBLE" ? " ×2" : step === "REDOUBLE" ? " ×4" : "");
+    yes.addEventListener("click", () => onChallenge(true));
+    const no = document.createElement("button");
+    no.type = "button";
+    no.className = "bid-btn bid-pass" + (hintChallenge === false ? " is-hint" : "");
+    no.textContent = step === "SINGLE_HAND" ? "No, play normally" : "Pass";
+    no.addEventListener("click", () => onChallenge(false));
+    el.challengeButtons.append(yes, no);
+  }
+
   // Show-trump button (only when you are void in the suit led)
   const canReveal = state.phase === "PLAYING" && state.turn === "SOUTH" && !shownTrick && E.canRevealTrump(state, "SOUTH");
   el.reveal.hidden = !canReveal;
   el.reveal.classList.toggle("is-hint", canReveal && hintReveal);
 
-  el.hint.disabled = !(bidding || choosing || legal.length || canReveal);
+  el.hint.disabled = !(bidding || choosing || asking || legal.length || canReveal);
 }
 
 const fmt = (n) => (n > 0 ? `+${n}` : `${n}`);
@@ -199,6 +233,34 @@ async function advance() {
       await sleep(SPEED.bid * 1.2);
       if (token !== run) return;
       state = E.selectTrump(state, E.chooseTrump(state, state.turn));
+    } else if (state.phase === "CHALLENGE") {
+      const seat = E.challengeDecider(state);
+      const step = state.challenge.step;
+      if (seat === "SOUTH") {
+        setStatus(step === "SINGLE_HAND" ? "Do you want to play a Single Hand?" : step === "DOUBLE" ? "Do you want to Double?" : "Do you want to Redouble?");
+        return;
+      }
+      setStatus(step === "SINGLE_HAND" ? `${NAMES[seat]} is considering a Single Hand…` : `${NAMES[seat]} is considering a ${STEP_LABEL[step]}…`);
+      await sleep(step === "SINGLE_HAND" ? SPEED.bid * 0.45 : SPEED.bid);
+      if (token !== run) return;
+      const call = E.chooseChallenge(state, seat, ctxNow());
+      state = E.challengeAnswer(state, call);
+      if (call) {
+        bubbles[seat] = step === "SINGLE_HAND" ? "Single Hand!" : `${STEP_LABEL[step]}!`;
+        render();
+        setStatus(step === "DOUBLE" ? `${NAMES[seat]} doubles! Stakes are ×2.` : step === "REDOUBLE" ? `${NAMES[seat]} redoubles! Stakes are ×4.` : `${NAMES[seat]} plays a Single Hand: all 8 tricks alone.`);
+        await sleep(SPEED.bid * 1.3);
+        if (token !== run) return;
+      }
+      if (state.phase === "PLAYING") {
+        bubbles = {};
+        if (state.isSingleHand) {
+          setStatus(`${NAMES[state.singleHandPlayer]} plays a Single Hand: all 8 tricks alone. ${NAMES[E.opposite(state.singleHandPlayer)]} sits out.`);
+          render();
+          await sleep(SPEED.bid * 1.3);
+          if (token !== run) return;
+        }
+      }
     } else if (state.phase === "PLAYING") {
       if (state.turn === "SOUTH") {
         const lead = state.currentTrick.length === 0;
@@ -271,6 +333,16 @@ function onTrump(suit) {
   advance();
 }
 
+function onChallenge(call) {
+  if (state.phase !== "CHALLENGE" || E.challengeDecider(state) !== "SOUTH") return;
+  const step = state.challenge.step;
+  hintChallenge = undefined;
+  state = E.challengeAnswer(state, call);
+  if (call) bubbles.SOUTH = step === "SINGLE_HAND" ? "Single Hand!" : `${STEP_LABEL[step]}!`;
+  if (state.phase === "PLAYING") bubbles = {};
+  advance();
+}
+
 async function onPlay(card) {
   if (!(state.phase === "PLAYING" && state.turn === "SOUTH") || shownTrick) return;
   if (!E.isLegal(state, "SOUTH", card)) return;
@@ -291,6 +363,7 @@ function onReveal() {
 function onHint() {
   if (state.phase === "BIDDING" && state.turn === "SOUTH") hintBid = E.chooseBid(state, "SOUTH");
   else if (state.phase === "TRUMP_SELECTION" && state.turn === "SOUTH") hintTrump = E.chooseTrump(state, "SOUTH");
+  else if (state.phase === "CHALLENGE" && E.challengeDecider(state) === "SOUTH") hintChallenge = E.chooseChallenge(state, "SOUTH", ctxNow(), () => 1);
   else if (state.phase === "PLAYING" && state.turn === "SOUTH") {
     if (E.canRevealTrump(state, "SOUTH") && E.shouldRevealTrump(state, "SOUTH")) hintReveal = true;
     else hintCard = E.chooseCard(state, "SOUTH");
@@ -314,13 +387,17 @@ function showRoundOver() {
   const pairNote = r.pairDeclaredBy
     ? `<p class="dlg-note">${NAMES[r.pairDeclaredBy]} declared the K+Q pair, so the target moved to <b>${r.effectiveTarget}</b>.</p>`
     : "";
-  const title = r.bidderUs
-    ? r.succeeded ? "You made the bid!" : "Bid missed"
-    : r.succeeded ? "Opponents made their bid" : "You set them!";
+  const title = r.isSingleHand
+    ? r.bidderUs
+      ? r.succeeded ? "Single Hand made!" : "Single Hand lost"
+      : r.succeeded ? "Opponents made a Single Hand" : "You stopped the Single Hand!"
+    : r.bidderUs
+      ? r.succeeded ? "You made the bid!" : "Bid missed"
+      : r.succeeded ? "Opponents made their bid" : "You set them!";
   const good = r.bidderUs === r.succeeded;
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
-      <p class="dlg-eyebrow">Round ${match.round} · Trump ${GLYPH[r.trump]} ${SUIT_NAME[r.trump]}</p>
+      <p class="dlg-eyebrow">Round ${match.round} · ${r.isSingleHand ? "Single Hand" : `Trump ${GLYPH[r.trump]} ${SUIT_NAME[r.trump]}`}${r.multiplier > 1 ? ` · ${r.multiplier === 4 ? "Redoubled ×4" : "Doubled ×2"}` : ""}</p>
       <h2 id="dlg-title" class="${good ? "good" : "bad"}">${title}</h2>
       <table class="score-table">
         <thead><tr><th></th><th>Card points</th><th>Tricks</th></tr></thead>
@@ -329,7 +406,11 @@ function showRoundOver() {
           <tr><th>Them</th><td><strong>${r.theirPoints}</strong></td><td>${r.theirTricks}</td></tr>
         </tbody>
       </table>
-      <p class="dlg-note">${bidderName} bid <b>${r.bidTarget}</b> and took <b>${bidderPts}</b>. ${r.succeeded ? "Bid made: +1." : "Bid missed: −1."}</p>
+      <p class="dlg-note">${
+        r.isSingleHand
+          ? `${NAMES[r.bidder]} needed all 8 tricks. ${r.succeeded ? "Swept them: +3." : "Lost a trick: −3."}`
+          : `${bidderName} bid <b>${r.bidTarget}</b> and took <b>${bidderPts}</b>. ${r.succeeded ? "Bid made" : "Bid missed"}: ${fmt(r.bidderUs ? r.ourDelta : r.theirDelta)}${r.multiplier > 1 ? ` (×${r.multiplier})` : ""}.`
+      }</p>
       ${pairNote}
       <p class="dlg-score">Match: <b>Us ${fmt(match.us)}</b> · <b>Them ${fmt(match.them)}</b> <small>(first to +${E.MATCH_SCORE} wins)</small></p>
       <button class="dlg-btn" type="button" data-next autofocus>${decided ? "See final result" : "Next round"}</button>
@@ -366,6 +447,7 @@ function resetHints() {
   hintCard = hintTrump = null;
   hintBid = undefined;
   hintReveal = false;
+  hintChallenge = undefined;
 }
 
 function startRound() {

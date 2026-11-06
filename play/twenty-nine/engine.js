@@ -1,6 +1,6 @@
 // Twenty-Nine (29) rules engine and computer players, ported from the Android app
 // (twentynine-rules: GameEngine.kt, GameState.kt, LegalMoves.kt, TrickRules.kt,
-// ComputerBidder.kt). Classic 29 only: no Double/Redouble, Single Hand, 7th-card or
+// ComputerBidder.kt). Double/Redouble and Single Hand included; no 7th-card or
 // No-Trump options, and no optional house rules (all off by default in the app).
 // Pure functions over plain objects; no DOM, so it runs under Node for tests.
 
@@ -68,6 +68,12 @@ export function startRound(dealer = "WEST", rng = Math.random, deck = null) {
     tricksWon: { SOUTH: 0, EAST: 0, NORTH: 0, WEST: 0 },
     pointsWon: { SOUTH: 0, EAST: 0, NORTH: 0, WEST: 0 },
     pairDeclaredBy: null,
+    challenge: null, // { step, asked, calls } while phase is CHALLENGE
+    multiplier: 1, // 1 normal, 2 doubled, 4 redoubled
+    doubler: null,
+    redoubler: null,
+    isSingleHand: false,
+    singleHandPlayer: null,
     lastCompletedTrick: null,
     lastTrickWinner: null,
     roundResult: null,
@@ -140,23 +146,93 @@ export function applyPass(state, seat) {
   return { ...state, bidding: { ...nb, lastWasDitto: false, dittoEligible: null }, turn: next };
 }
 
-/** Bid winner names trump; the back four cards are then dealt and play begins. */
+/** Bid winner names trump. Players keep their first four cards for the Double/Redouble decisions. */
 export function selectTrump(state, suit) {
   if (state.phase !== "TRUMP_SELECTION") throw new Error("Not in TRUMP_SELECTION phase");
-  const second = dealFour(state.remainingDeck);
-  const hands = {};
-  for (const s of SEATS) hands[s] = sortHand([...state.hands[s], ...second[s]]);
   return {
     ...state,
-    hands,
-    remainingDeck: [],
     trump: suit,
     trumpSetter: state.turn,
-    phase: "PLAYING",
-    turn: firstBidder(state.dealer), // the first bidder leads trick one
+    phase: "CHALLENGE",
+    turn: firstBidder(state.dealer), // the first bidder leads trick one (a single hand overrides this)
     currentTrick: [],
+    challenge: { step: "DOUBLE", asked: [], calls: {} },
   };
 }
+
+// ── Challenge phase: Double, Redouble, Single Hand (GameEngine.kt) ───────────
+
+const SINGLE_HAND_ASK_ORDER = ["EAST", "WEST", "NORTH", "SOUTH"];
+const bidderSeat = (state) => state.trumpSetter;
+
+/** Defenders are asked in this order; your side asks you first, then your partner. */
+function defenderOrder(state) {
+  return isUs(bidderSeat(state)) ? ["EAST", "WEST"] : ["SOUTH", "NORTH"];
+}
+
+/** Who must answer the current challenge question. */
+export function challengeDecider(state) {
+  const ch = state.challenge;
+  if (state.phase !== "CHALLENGE" || !ch) return null;
+  if (ch.step === "DOUBLE") return defenderOrder(state)[ch.asked.length];
+  if (ch.step === "REDOUBLE") return isUs(bidderSeat(state)) ? "SOUTH" : bidderSeat(state);
+  return SINGLE_HAND_ASK_ORDER.find((s) => !(s in ch.calls)) || null;
+}
+
+function dealSecondHand(state) {
+  if (!state.remainingDeck.length) return state;
+  const extra = dealFour(state.remainingDeck);
+  const hands = {};
+  for (const s of SEATS) hands[s] = sortHand([...state.hands[s], ...extra[s]]);
+  return { ...state, hands, remainingDeck: [] };
+}
+
+function startSingleHandStep(state) {
+  const dealt = dealSecondHand(state);
+  return { ...dealt, challenge: { step: "SINGLE_HAND", asked: [], calls: {} } };
+}
+
+/** Answer the current challenge question: true = call it, false = decline. */
+export function challengeAnswer(state, accepted) {
+  const ch = state.challenge;
+  const decider = challengeDecider(state);
+  if (!ch || !decider) throw new Error("Not in CHALLENGE phase");
+
+  if (ch.step === "DOUBLE") {
+    if (accepted) {
+      return { ...state, multiplier: 2, doubler: decider, challenge: { step: "REDOUBLE", asked: [], calls: {} } };
+    }
+    const asked = [...ch.asked, decider];
+    if (asked.length < defenderOrder(state).length) return { ...state, challenge: { ...ch, asked } };
+    return startSingleHandStep(state);
+  }
+
+  if (ch.step === "REDOUBLE") {
+    return startSingleHandStep(accepted ? { ...state, multiplier: 4, redoubler: decider } : state);
+  }
+
+  const calls = { ...ch.calls, [decider]: accepted };
+  if (SINGLE_HAND_ASK_ORDER.some((s) => !(s in calls))) return { ...state, challenge: { ...ch, calls } };
+  // You win a tie for the call; otherwise the last seat in the ask order that called.
+  const caller = calls.SOUTH ? "SOUTH" : [...SINGLE_HAND_ASK_ORDER].reverse().find((s) => calls[s]) || null;
+  return {
+    ...state,
+    phase: "PLAYING",
+    challenge: null,
+    isSingleHand: !!caller,
+    singleHandPlayer: caller,
+    turn: caller || state.turn,
+  };
+}
+
+/** The player sitting out a single hand: the caller's partner. */
+export const sitOutSeat = (state) => (state.isSingleHand ? opposite(state.singleHandPlayer) : null);
+export const roundBidder = (state) => (state.isSingleHand ? state.singleHandPlayer : biddingWinner(state.bidding) || state.dealer);
+const nextActiveSeat = (state, from) => {
+  let s = nextSeat(from);
+  if (s === sitOutSeat(state)) s = nextSeat(s);
+  return s;
+};
 
 // ── Trump reveal, legality ───────────────────────────────────────────────────
 
@@ -165,7 +241,7 @@ export const isTrumpRevealed = (state) => state.trumpReveal !== null;
 const leadSuitOf = (state) => (state.currentTrick.length ? state.currentTrick[0].card.suit : null);
 
 export function canRevealTrump(state, seat) {
-  if (state.phase !== "PLAYING" || state.trump === null || state.trumpReveal || state.turn !== seat) return false;
+  if (state.phase !== "PLAYING" || state.isSingleHand || state.trump === null || state.trumpReveal || state.turn !== seat) return false;
   const lead = leadSuitOf(state);
   if (!lead) return false;
   return state.hands[seat].every((c) => c.suit !== lead);
@@ -220,7 +296,7 @@ export function trickWinner(state, plays, trickNumber = completedCount(state)) {
 
 function canDeclarePairWithCard(state, seat, card) {
   const t = state.trump;
-  if (!t || state.phase !== "PLAYING" || !state.trumpReveal || state.pairDeclaredBy) return false;
+  if (!t || state.phase !== "PLAYING" || state.isSingleHand || !state.trumpReveal || state.pairDeclaredBy) return false;
   if (card.suit !== t || (card.rank !== "K" && card.rank !== "Q")) return false;
   const teamWon = state.tricksWon[seat] + state.tricksWon[opposite(seat)] > 0;
   if (!teamWon) return false;
@@ -245,8 +321,8 @@ export function play(state, seat, card) {
   const hands = { ...state.hands, [seat]: state.hands[seat].filter((c) => !sameCard(c, card)) };
   const trick = [...state.currentTrick, { player: seat, card }];
 
-  if (trick.length < 4) {
-    return { ...state, hands, currentTrick: trick, turn: nextSeat(seat), pairDeclaredBy };
+  if (trick.length < (state.isSingleHand ? 3 : 4)) {
+    return { ...state, hands, currentTrick: trick, turn: nextActiveSeat(state, seat), pairDeclaredBy };
   }
 
   const trickNumber = completedCount(state);
@@ -270,34 +346,54 @@ export function play(state, seat, card) {
     pointsWon,
     pairDeclaredBy,
   };
-  if (completedTricks.length < 8) return base;
 
-  // All 8 tricks played: the bidding team needs its (pair-adjusted) target in card points.
-  const bidder = biddingWinner(state.bidding) || state.dealer;
-  const bidTarget = winningBid(state.bidding);
+  const bidder = roundBidder(state);
   const bidderUs = isUs(bidder);
   const ourPoints = pointsWon.SOUTH + pointsWon.NORTH;
   const theirPoints = pointsWon.EAST + pointsWon.WEST;
   const ourTricks = tricksWon.SOUTH + tricksWon.NORTH;
   const theirTricks = tricksWon.EAST + tricksWon.WEST;
+  const common = { bidder, trump: state.trump, ourPoints, theirPoints, ourTricks, theirTricks, bidderUs, multiplier: state.multiplier };
+
+  if (state.isSingleHand) {
+    // The caller must take every trick: one lost trick ends the round (-3), eight won is +3.
+    const lost = winner !== bidder;
+    if (!lost && completedTricks.length < 8) return base;
+    const succeeded = !lost;
+    const delta = succeeded ? 3 : -3;
+    return {
+      ...base,
+      phase: "ROUND_OVER",
+      roundResult: {
+        ...common,
+        bidTarget: 28,
+        effectiveTarget: 28,
+        pairDeclaredBy: null,
+        isSingleHand: true,
+        succeeded,
+        ourDelta: bidderUs ? delta : 0,
+        theirDelta: bidderUs ? 0 : delta,
+      },
+    };
+  }
+
+  if (completedTricks.length < 8) return base;
+
+  // All 8 tricks played: the bidding team needs its (pair-adjusted) target in card points.
+  const bidTarget = winningBid(state.bidding);
   const effective = adjustedTarget(base, bidder, bidTarget);
   const bidderPoints = bidderUs ? ourPoints : theirPoints;
   const succeeded = bidderPoints >= effective;
-  const delta = succeeded ? 1 : -1;
+  const delta = (succeeded ? 1 : -1) * state.multiplier;
   return {
     ...base,
     phase: "ROUND_OVER",
     roundResult: {
-      bidder,
+      ...common,
       bidTarget,
       effectiveTarget: effective,
       pairDeclaredBy,
-      trump: state.trump,
-      ourPoints,
-      theirPoints,
-      ourTricks,
-      theirTricks,
-      bidderUs,
+      isSingleHand: false,
       succeeded,
       ourDelta: bidderUs ? delta : 0,
       theirDelta: bidderUs ? 0 : delta,
@@ -448,6 +544,7 @@ function wouldWin(state, seat, card) {
 }
 
 function knownTrump(state, seat) {
+  if (state.isSingleHand) return null; // trump is never revealed in a single hand
   return isTrumpRevealed(state) || state.trumpSetter === seat ? state.trump : null;
 }
 
@@ -517,7 +614,7 @@ export function chooseCard(state, seat) {
   // ── Following ──
   const winnerNow = trickWinner(state, plays);
   const trickPts = plays.reduce((n, p) => n + pts(p.card), 0);
-  const last = plays.length === 3;
+  const last = plays.length === (state.isSingleHand ? 2 : 3);
   const winners = legal.filter((c) => wouldWin(state, seat, c));
 
   if (winnerNow.player === partner) {
@@ -529,6 +626,9 @@ export function chooseCard(state, seat) {
     return lowestBy(legal, key);
   }
 
+  // A single-hand caller must win every trick, so take it as cheaply as possible.
+  if (state.isSingleHand && seat === state.singleHandPlayer && winners.length) return lowestBy(winners, tn);
+
   // An opponent is ahead.
   if (winners.length) {
     const cheapest = lowestBy(winners, (c) => (c.suit === trump && c.suit !== plays[0].card.suit ? 1000 : 0) + tn(c));
@@ -536,4 +636,118 @@ export function chooseCard(state, seat) {
     if (worthIt) return cheapest;
   }
   return lowestBy(legal.filter((c) => c.suit !== trump).length ? legal.filter((c) => c.suit !== trump) : legal, key);
+}
+
+// ── Computer challenge decisions (ChallengeAdvisor.kt) ───────────────────────
+
+const VERY_STRONG_DOUBLE_THRESHOLD = 8.5;
+
+/** Coarse trick-winning power of a hand for a given trump suit. */
+function defensiveStrength(hand, trump) {
+  let score = 0;
+  const trumps = hand.filter((c) => c.suit === trump);
+  for (const c of trumps) score += c.rank === "J" ? 3 : c.rank === "9" ? 2 : c.rank === "A" ? 1.5 : c.rank === "K" ? 1 : 0.3;
+  if (trumps.length > 3) score += trumps.length - 3;
+  for (const suit of SUITS) {
+    if (suit === trump) continue;
+    const cards = hand.filter((c) => c.suit === suit);
+    if (!cards.length) continue;
+    if (cards.some((c) => c.rank === "A")) score += 1.5;
+    if (cards.some((c) => c.rank === "K") && cards.length >= 2) score += 0.5;
+    if (cards.length <= 1 && trumps.length) score += 0.5;
+  }
+  return score;
+}
+
+/** Who would own the match if the bidder makes (success) or misses (failure) at this stake. */
+function projectedOwner(bidderUs, made, multiplier, ctx) {
+  let our = ctx.ourSetScore;
+  let their = ctx.theirSetScore;
+  // Classic scoring: a miss subtracts from the bidding team.
+  if (made) (bidderUs ? (our += multiplier) : (their += multiplier));
+  else (bidderUs ? (our -= multiplier) : (their -= multiplier));
+  our = Math.max(-MATCH_SCORE, Math.min(MATCH_SCORE, our));
+  their = Math.max(-MATCH_SCORE, Math.min(MATCH_SCORE, their));
+  const ourWins = our >= MATCH_SCORE || their <= -MATCH_SCORE;
+  const theirWins = their >= MATCH_SCORE || our <= -MATCH_SCORE;
+  if (bidderUs) return ourWins ? "BIDDER" : theirWins ? "DEFENDER" : "NONE";
+  return theirWins ? "BIDDER" : ourWins ? "DEFENDER" : "NONE";
+}
+
+const stakeOutcome = (bidderUs, multiplier, ctx) => ({
+  success: projectedOwner(bidderUs, true, multiplier, ctx),
+  failure: projectedOwner(bidderUs, false, multiplier, ctx),
+});
+
+/** Should `decider` (a defender) call Double? Judged only on their own first four cards. */
+export function shouldCallDouble(state, decider, ctx) {
+  const hand = state.hands[decider];
+  if (!hand.length || !state.trump) return false;
+  const bidderUs = isUs(bidderSeat(state));
+  const strength = defensiveStrength(hand, state.trump);
+  const target = winningBid(state.bidding);
+  let threshold = target >= 23 ? 3 : target >= 20 ? 4 : target >= 18 ? 5 : 6.5;
+  const normal = stakeOutcome(bidderUs, 1, ctx);
+  const doubled = stakeOutcome(bidderUs, 2, ctx);
+  if (normal.success === "BIDDER" && doubled.success === "BIDDER") return true; // free double
+  if (normal.failure === "DEFENDER" && doubled.failure === "DEFENDER") return strength >= VERY_STRONG_DOUBLE_THRESHOLD;
+  if (normal.failure !== "DEFENDER" && doubled.failure === "DEFENDER") threshold -= 2;
+  if (normal.success !== "BIDDER" && doubled.success === "BIDDER") threshold += 2;
+  const defending = bidderUs ? ctx.theirSetScore : ctx.ourSetScore;
+  if (defending >= 4 && doubled.failure !== "DEFENDER") threshold += defending >= 5 ? 1.5 : 1;
+  return strength >= Math.max(threshold, 2.5);
+}
+
+/** Should the bidding team Redouble? Judged on the decider's first four cards. */
+export function shouldCallRedouble(state, decider, ctx) {
+  const hand = state.hands[decider];
+  if (!hand.length || !state.trump) return false;
+  const trumps = hand.filter((c) => c.suit === state.trump);
+  const jack = trumps.some((c) => c.rank === "J");
+  const handPoints = hand.reduce((n, c) => n + pts(c), 0);
+  const strength = defensiveStrength(hand, state.trump);
+  const strong = (trumps.length >= 3 && jack) || (trumps.length >= 2 && jack && handPoints >= 8) || (trumps.length >= 3 && strength >= 6);
+  const veryStrong = (trumps.length >= 3 && jack) || (trumps.length >= 2 && jack && handPoints >= 10) || strength >= 7;
+  const bidderUs = isUs(bidderSeat(state));
+  const d2 = stakeOutcome(bidderUs, 2, ctx);
+  const d4 = stakeOutcome(bidderUs, 4, ctx);
+  if (d2.success === "BIDDER" && d4.success === "BIDDER") return false;
+  if (d2.failure !== "DEFENDER" && d4.failure === "DEFENDER") return veryStrong;
+  if (d2.failure === "DEFENDER" && d4.failure === "DEFENDER") return strong || strength >= 5.5 || (trumps.length >= 3 && jack);
+  if (d2.success !== "BIDDER" && d4.success === "BIDDER") return strong || strength >= 6 || (trumps.length >= 3 && handPoints >= 7);
+  return strong;
+}
+
+function singleHandSuitRisk(hand, suit, rng) {
+  const cards = hand.filter((c) => c.suit === suit);
+  if (!cards.length) return 0;
+  const has = (r) => cards.some((c) => c.rank === r);
+  const jack = has("J");
+  const nine = has("9");
+  const ace = has("A");
+  if (!jack) return 8;
+  switch (cards.length) {
+    case 1: return 0;
+    case 2: return nine ? 0 : 8;
+    case 3: return nine && ace ? 0 : nine ? (rng() < 0.1 ? 2 : 8) : ace ? (rng() < 0.005 ? 1 : 8) : 8;
+    case 4: return nine && ace ? 0 : nine ? 1 : ace ? (rng() < 0.05 ? 2 : 8) : 8;
+    case 5: return nine ? 0 : ace ? 2 : 8;
+    default: return 0;
+  }
+}
+
+/** Should `seat` go it alone for all eight tricks? Judged on the full eight-card hand. */
+export function shouldPlaySingleHand(state, seat, rng = Math.random) {
+  const hand = state.hands[seat];
+  if (!hand.length) return false;
+  const risk = SUITS.reduce((n, suit) => n + singleHandSuitRisk(hand, suit, rng), 0);
+  return risk <= 1 || (risk <= 2 && rng() < 0.9);
+}
+
+/** The computer's answer to the current challenge question. */
+export function chooseChallenge(state, seat, ctx, rng = Math.random) {
+  const ch = state.challenge;
+  if (ch.step === "DOUBLE") return shouldCallDouble(state, seat, ctx);
+  if (ch.step === "REDOUBLE") return shouldCallRedouble(state, seat, ctx);
+  return shouldPlaySingleHand(state, seat, rng);
 }
