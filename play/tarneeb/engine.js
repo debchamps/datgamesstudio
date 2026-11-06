@@ -357,7 +357,7 @@ function playLeadToLose(legal, trump) {
   return lowest(legal);
 }
 
-function playLeadToWin(state, seat, legal, trump) {
+export function playLeadToWin(state, seat, legal, trump) {
   // aceMove
   const ace = legal.find((c) => c.rank === "A" && (!hasCard(legal, c.suit, "Q") || hasCard(legal, c.suit, "K")));
   if (ace) return ace;
@@ -431,7 +431,7 @@ function trumpMove(state, seat, legal, trump) {
   return over.length ? lowest(over) : null;
 }
 
-function playFollowToWin(state, seat, legal, trump) {
+export function playFollowToWin(state, seat, legal, trump) {
   const lead = state.currentTrick[0].card.suit;
   const same = legal.filter((c) => c.suit === lead);
   if (same.length) return suitedStrategy(state, seat, same, trump);

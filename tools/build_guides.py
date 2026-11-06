@@ -465,7 +465,7 @@ def store_row(g: dict) -> str:
     return '<div class="store-row">' + "".join(out) + "</div>"
 
 
-WEB_PLAY = {"callbreak", "twenty-nine", "tarneeb", "hearts"}
+WEB_PLAY = {"callbreak", "twenty-nine", "tarneeb", "hearts", "hokm"}
 
 
 def web_play(g: dict) -> str:
