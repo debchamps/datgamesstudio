@@ -1,14 +1,37 @@
 // Hearts rules engine and computer players, ported from the Android app
 // (hearts-rules: HeartsEngine.kt, LegalMoves.kt, PassingRules.kt, ai/HeartsBot.kt,
 // HeartsLeadStrategy.kt, HeartsFollowStrategy.kt, MoonShotStrategy.kt, PassStrategy.kt).
-// Default rules only: alternating pass, Q♠ = 13, shoot the moon gives everyone else 26,
-// game to 100. No Jack of Diamonds variant. Pure functions plus one bot object; no DOM.
+// Two rule sets: HEARTS (alternating pass, Q♠ = 13, shoot the moon, game to 100) and
+// BRAY, which the Bray app plays on the same engine (HeartsRules.BRAY: no passing,
+// Q♠ = 12, free lead, no moon, −12 for a deal with zero tricks, rotating starter).
+// No Jack of Diamonds variant. Pure functions plus one bot object; no DOM.
 
 export const POSITIONS = ["NORTH", "EAST", "SOUTH", "WEST"]; // clockwise
 export const SUITS = ["S", "H", "C", "D"]; // Kotlin Suit enum order
 export const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-export const TARGET = 100;
 export const MOON = 26;
+
+export const HEARTS = {
+  name: "hearts",
+  target: 100,
+  passing: true,
+  queenOfSpadesValue: 13,
+  freeLead: false,
+  moonEnabled: true,
+  zeroTrickBonus: 0,
+  rotatingStarter: false,
+};
+
+export const BRAY = {
+  ...HEARTS,
+  name: "bray",
+  passing: false,
+  queenOfSpadesValue: 12,
+  freeLead: true,
+  moonEnabled: false,
+  zeroTrickBonus: -12,
+  rotatingStarter: true,
+};
 
 const ord = (c) => RANKS.indexOf(c.rank) + 1; // 2 = 1 ... A = 13
 export const sameCard = (a, b) => a.suit === b.suit && a.rank === b.rank;
@@ -21,7 +44,10 @@ export const others = (p) => POSITIONS.filter((x) => x !== p);
 const TWO_CLUBS = { suit: "C", rank: "2" };
 const QUEEN_SPADES = { suit: "S", rank: "Q" };
 
+/** Card value the bots reason with (Q♠ = 13 in both rule sets, as in the app's AiUtils). */
 export const points = (c) => (c.suit === "H" ? 1 : sameCard(c, QUEEN_SPADES) ? 13 : 0);
+/** Card value that is actually scored under `rules`. */
+export const penalty = (c, rules = HEARTS) => (c.suit === "H" ? 1 : sameCard(c, QUEEN_SPADES) ? rules.queenOfSpadesValue : 0);
 const trickPoints = (t) => t.reduce((n, p) => n + points(p.card), 0);
 
 const HAND_SUIT_ORDER = { H: 0, S: 1, D: 2, C: 3 };
@@ -42,7 +68,8 @@ export function shuffle(deck, rng = Math.random) {
   return a;
 }
 
-export const passDirectionFor = (dealNumber) => ["HOLD", "LEFT", "RIGHT", "ACROSS"][dealNumber % 4];
+export const passDirectionFor = (dealNumber, rules = HEARTS) =>
+  rules.passing ? ["HOLD", "LEFT", "RIGHT", "ACROSS"][dealNumber % 4] : "HOLD";
 const receiver = (pos, dir) => (dir === "LEFT" ? next(pos) : dir === "RIGHT" ? prev(pos) : dir === "ACROSS" ? across(pos) : pos);
 const giver = (pos, dir) => (dir === "LEFT" ? prev(pos) : dir === "RIGHT" ? next(pos) : dir === "ACROSS" ? across(pos) : pos);
 export { receiver, giver };
@@ -54,17 +81,19 @@ const winnerOf = (trick) => {
 };
 
 function beginPlay(state) {
-  const starter = POSITIONS.find((p) => state.hands[p].some((c) => sameCard(c, TWO_CLUBS)));
+  const starter = state.rules.rotatingStarter
+    ? POSITIONS[(state.dealNumber - 1) % 4]
+    : POSITIONS.find((p) => state.hands[p].some((c) => sameCard(c, TWO_CLUBS)));
   return { ...state, phase: "PLAYING", leader: starter, turn: starter, currentTrick: [] };
 }
 
-export function newDeal(dealNumber, matchScores = zero(), rng = Math.random) {
+export function newDeal(dealNumber, matchScores = zero(), rng = Math.random, rules = HEARTS) {
   const deck = shuffle(makeDeck(), rng);
   const hands = { NORTH: [], EAST: [], SOUTH: [], WEST: [] };
   const order = ["NORTH", "EAST", "SOUTH", "WEST"];
   deck.forEach((c, i) => hands[order[i % 4]].push(c));
   for (const p of POSITIONS) hands[p] = sortHand(hands[p]);
-  const direction = passDirectionFor(dealNumber);
+  const direction = passDirectionFor(dealNumber, rules);
   const base = {
     hands,
     currentTrick: [],
@@ -82,11 +111,12 @@ export function newDeal(dealNumber, matchScores = zero(), rng = Math.random) {
     received: {}, // seat -> cards received in the pass
     matchScores,
     dealResult: null,
+    rules,
   };
   return direction === "HOLD" ? beginPlay(base) : base;
 }
 
-export const nextDeal = (state, rng = Math.random) => newDeal(state.dealNumber + 1, state.matchScores, rng);
+export const nextDeal = (state, rng = Math.random) => newDeal(state.dealNumber + 1, state.matchScores, rng, state.rules);
 
 // ── Passing ──────────────────────────────────────────────────────────────────
 
@@ -119,6 +149,11 @@ export function legalMoves(state, pos) {
   const hand = state.hands[pos];
   const trick = state.currentTrick;
   const leading = trick.length === 0;
+  if (state.rules.freeLead) {
+    if (leading) return hand;
+    const followers = hand.filter((c) => c.suit === trick[0].card.suit);
+    return followers.length ? followers : hand;
+  }
   const first = state.completedTricks.length === 0;
   if (first) {
     if (leading) return hand.filter((c) => sameCard(c, TWO_CLUBS));
@@ -142,17 +177,34 @@ export function legalMoves(state, pos) {
 
 export const isLegal = (state, pos, card) => legalMoves(state, pos).some((c) => sameCard(c, card));
 
-export function scoreDeal(completedTricks) {
+export function scoreDeal(completedTricks, rules = HEARTS) {
   const raw = zero();
-  for (const t of completedTricks) raw[winnerOf(t)] += trickPoints(t);
-  const winners = [...new Set(completedTricks.filter((t) => trickPoints(t) > 0).map(winnerOf))];
-  if (winners.length === 1) {
-    const shooter = winners[0];
-    const dealScores = {};
-    for (const p of POSITIONS) dealScores[p] = p === shooter ? 0 : MOON;
-    return { dealScores, rawPoints: raw, moonShooter: shooter };
+  const trickCounts = zero();
+  for (const t of completedTricks) {
+    const w = winnerOf(t);
+    raw[w] += t.reduce((n, p) => n + penalty(p.card, rules), 0);
+    trickCounts[w]++;
   }
-  return { dealScores: raw, rawPoints: raw, moonShooter: null };
+  if (rules.moonEnabled) {
+    const winners = [...new Set(completedTricks.filter((t) => trickPoints(t) > 0).map(winnerOf))];
+    if (winners.length === 1) {
+      const shooter = winners[0];
+      const dealScores = {};
+      for (const p of POSITIONS) dealScores[p] = p === shooter ? 0 : MOON;
+      return { dealScores, rawPoints: raw, moonShooter: shooter, zeroTrickPlayers: [] };
+    }
+  }
+  const dealScores = { ...raw };
+  const zeroTrickPlayers = [];
+  if (rules.zeroTrickBonus !== 0) {
+    for (const p of POSITIONS) {
+      if (trickCounts[p] === 0) {
+        dealScores[p] = rules.zeroTrickBonus;
+        zeroTrickPlayers.push(p);
+      }
+    }
+  }
+  return { dealScores, rawPoints: raw, moonShooter: null, zeroTrickPlayers };
 }
 
 export function play(state, pos, card) {
@@ -180,10 +232,10 @@ export function play(state, pos, card) {
   };
   if (completed.length < 13) return resolved;
 
-  const result = scoreDeal(completed);
+  const result = scoreDeal(completed, state.rules);
   const matchScores = {};
   for (const p of POSITIONS) matchScores[p] = state.matchScores[p] + result.dealScores[p];
-  const over = Object.values(matchScores).some((s) => s >= TARGET);
+  const over = Object.values(matchScores).some((s) => s >= state.rules.target);
   return { ...resolved, matchScores, dealResult: result, phase: over ? "MATCH_OVER" : "DEAL_OVER" };
 }
 
@@ -450,6 +502,7 @@ export function createBot(rng = Math.random) {
   const moonCommit = {};
 
   function shouldAttemptMoon(state, pos) {
+    if (!state.rules.moonEnabled) return false;
     if (lastSeenDeal !== state.dealNumber) {
       lastSeenDeal = state.dealNumber;
       for (const k of Object.keys(moonCommit)) delete moonCommit[k];

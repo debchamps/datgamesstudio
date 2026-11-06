@@ -1,5 +1,21 @@
 import * as E from "./engine.js";
 
+// The same page script runs Hearts and Bray; <html data-game="bray"> picks the Bray rules.
+const GAME = document.documentElement.dataset.game === "bray"
+  ? {
+      rules: E.BRAY,
+      play: "com.datgames.bray",
+      ios: "1607650705",
+      campaign: "play_bray",
+      promo: "Online multiplayer, stats, themes and rule options.",
+    }
+  : {
+      rules: E.HEARTS,
+      play: "com.datgames.hearts",
+      ios: "1620761646",
+      campaign: "play_hearts",
+      promo: "Achievements, stats, themes and rule options.",
+    };
 const NAMES = { SOUTH: "You", WEST: "William", NORTH: "Arthur", EAST: "Emma" };
 const GLYPH = { S: "♠", H: "♥", C: "♣", D: "♦" };
 const SUIT_NAME = { S: "Spades", H: "Hearts", C: "Clubs", D: "Diamonds" };
@@ -47,13 +63,13 @@ function dealPoints(seat) {
   return state.completedTricks.reduce((n, t) => {
     const lead = t[0].card.suit;
     const w = t.filter((p) => p.card.suit === lead).reduce((b, p) => (E.RANKS.indexOf(p.card.rank) > E.RANKS.indexOf(b.card.rank) ? p : b));
-    return w.position === seat ? n + t.reduce((m, p) => m + E.points(p.card), 0) : n;
+    return w.position === seat ? n + t.reduce((m, p) => m + E.penalty(p.card, state.rules), 0) : n;
   }, 0);
 }
 
 function render() {
   if (!state) return;
-  el.score.innerHTML = `<span>You <b>${state.matchScores.SOUTH}</b></span><small>lowest wins · game to ${E.TARGET}</small>`;
+  el.score.innerHTML = `<span>You <b>${state.matchScores.SOUTH}</b></span><small>lowest wins · game to ${state.rules.target}</small>`;
   el.round.textContent = `Deal ${state.dealNumber}`;
 
   const playing = state.phase === "PLAYING";
@@ -66,9 +82,15 @@ function render() {
     seat.classList.toggle("is-winner", !!shownTrick && shownTrick.winner === s);
   }
 
-  el.dirChip.textContent = state.passDirection === "HOLD" ? "No passing this deal" : `Pass ${state.passDirection.toLowerCase()}`;
-  el.brokenChip.className = "chip-trump " + (state.heartsBroken ? "red" : "");
-  el.brokenChip.innerHTML = state.heartsBroken ? `<b>♥</b> Hearts broken` : `<b>♥</b> Hearts not broken`;
+  if (state.rules.freeLead) {
+    el.dirChip.textContent = `${NAMES[E.POSITIONS[(state.dealNumber - 1) % 4]]} leads this deal`;
+    el.brokenChip.className = "chip-trump red";
+    el.brokenChip.innerHTML = `<b>♥</b> Any card may be led`;
+  } else {
+    el.dirChip.textContent = state.passDirection === "HOLD" ? "No passing this deal" : `Pass ${state.passDirection.toLowerCase()}`;
+    el.brokenChip.className = "chip-trump " + (state.heartsBroken ? "red" : "");
+    el.brokenChip.innerHTML = state.heartsBroken ? `<b>♥</b> Hearts broken` : `<b>♥</b> Hearts not broken`;
+  }
 
   // Hand
   el.hand.replaceChildren();
@@ -146,7 +168,9 @@ async function advance() {
         const got = !state.completedTricks.length && state.received.SOUTH && state.currentTrick.length === 0 && state.passDirection !== "HOLD";
         setStatus(
           first && state.currentTrick.length === 0
-            ? "You hold the 2♣, so you lead it."
+            ? GAME.rules.freeLead
+              ? "You lead the first trick. Any card is fine."
+              : "You hold the 2♣, so you lead it."
             : state.currentTrick.length === 0
               ? "Your lead."
               : "Your turn. Glowing cards are legal plays.",
@@ -175,7 +199,7 @@ async function playCard(seat, c, token) {
   if (state.completedTricks.length > before) {
     shownTrick = { plays: state.lastCompletedTrick, winner: state.lastTrickWinner };
     render();
-    const pts = state.lastCompletedTrick.reduce((n, p) => n + E.points(p.card), 0);
+    const pts = state.lastCompletedTrick.reduce((n, p) => n + E.penalty(p.card, state.rules), 0);
     setStatus(`${NAMES[state.lastTrickWinner]} takes the trick${pts ? ` and ${pts} point${pts > 1 ? "s" : ""}` : ""}.`);
     await sleep(SPEED.trickHold);
     if (token !== run) return;
@@ -221,7 +245,10 @@ function showDealOver() {
   const moon = r.moonShooter
     ? `<p class="dlg-note moon">🌙 <b>${r.moonShooter === "SOUTH" ? "You shot" : NAMES[r.moonShooter] + " shot"} the moon!</b> ${r.moonShooter === "SOUTH" ? "Everyone else takes" : "You and the others take"} 26.</p>`
     : "";
-  const title = r.moonShooter === "SOUTH" ? "You shot the moon!" : r.dealScores.SOUTH === 0 ? "A clean deal!" : `You took ${r.dealScores.SOUTH} point${r.dealScores.SOUTH === 1 ? "" : "s"}`;
+  const zero = r.zeroTrickPlayers.length
+    ? `<p class="dlg-note moon">🧤 <b>${r.zeroTrickPlayers.map((p) => NAMES[p]).join(", ")}</b> took no tricks: ${r.zeroTrickPlayers.includes("SOUTH") && r.zeroTrickPlayers.length === 1 ? "a" : "each a"} <b>${GAME.rules.zeroTrickBonus}</b> bonus.</p>`
+    : "";
+  const title = r.moonShooter === "SOUTH" ? "You shot the moon!" : r.zeroTrickPlayers.includes("SOUTH") ? "No tricks: −12 bonus!" : r.dealScores.SOUTH === 0 ? "A clean deal!" : `You took ${r.dealScores.SOUTH} point${r.dealScores.SOUTH === 1 ? "" : "s"}`;
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Deal ${state.dealNumber} of the match</p>
@@ -230,8 +257,8 @@ function showDealOver() {
         <thead><tr><th></th><th>This deal</th><th>Total</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      ${moon}
-      <p class="dlg-note">Lowest total wins. The game ends when someone reaches ${E.TARGET}.</p>
+      ${moon}${zero}
+      <p class="dlg-note">Lowest total wins. The game ends when someone reaches ${state.rules.target}.</p>
       <button class="dlg-btn" type="button" data-next autofocus>${matchDone ? "See final result" : "Next deal"}</button>
     </div>`;
   el.overlay.querySelector("[data-next]").addEventListener("click", () => {
@@ -258,10 +285,10 @@ function showMatchOver() {
       <ol class="final-list">${list}</ol>
       <button class="dlg-btn" type="button" data-again autofocus>Play again</button>
       <div class="dlg-promo">
-        <p><strong>Like it? Get the full game.</strong> Achievements, stats, themes and rule options.</p>
+        <p><strong>Like it? Get the full game.</strong> ${GAME.promo}</p>
         <div class="store-row">
-          <a class="store-btn" href="https://play.google.com/store/apps/details?id=com.datgames.hearts&amp;utm_source=website&amp;utm_medium=web_game&amp;utm_campaign=play_hearts&amp;utm_content=match_over" rel="noopener"><svg aria-hidden="true"><use href="#i-play"/></svg><span><small>Get it on</small>Google Play</span></a>
-          <a class="store-btn" href="https://apps.apple.com/app/id1620761646?ct=web_game_match_over" rel="noopener"><svg aria-hidden="true"><use href="#i-apple"/></svg><span><small>Download on the</small>App Store</span></a>
+          <a class="store-btn" href="https://play.google.com/store/apps/details?id=${GAME.play}&amp;utm_source=website&amp;utm_medium=web_game&amp;utm_campaign=${GAME.campaign}&amp;utm_content=match_over" rel="noopener"><svg aria-hidden="true"><use href="#i-play"/></svg><span><small>Get it on</small>Google Play</span></a>
+          <a class="store-btn" href="https://apps.apple.com/app/id${GAME.ios}?ct=web_game_match_over" rel="noopener"><svg aria-hidden="true"><use href="#i-apple"/></svg><span><small>Download on the</small>App Store</span></a>
         </div>
       </div>
     </div>`;
@@ -275,7 +302,7 @@ function newMatch() {
   hintCards = [];
   shownTrick = null;
   bot = E.createBot();
-  state = E.newDeal(1);
+  state = E.newDeal(1, undefined, Math.random, GAME.rules);
   advance();
 }
 
