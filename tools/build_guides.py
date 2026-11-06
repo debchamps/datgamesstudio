@@ -465,6 +465,15 @@ def store_row(g: dict) -> str:
     return '<div class="store-row">' + "".join(out) + "</div>"
 
 
+WEB_PLAY = {"callbreak"}
+
+
+def web_play(g: dict) -> str:
+    if g["slug"] not in WEB_PLAY:
+        return ""
+    return f'<a class="web-play" href="/play/{g["slug"]}/">▶ Play in your browser</a>'
+
+
 def slugify(text: str) -> str:
     return "".join(c if c.isalnum() else "-" for c in text.lower()).strip("-").replace("--", "-")
 
@@ -548,6 +557,7 @@ def game_page(g: dict) -> str:
           <div class="side-cta">
             <img src="/assets/img/icons/{g['icon']}.png" alt="" width="48" height="48" loading="lazy">
             <p><strong>Play {html.escape(s)} free</strong>Offline, against smart AI.</p>
+            {web_play(g)}
             {store_row(g)}
           </div>
         </aside>

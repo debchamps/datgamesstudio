@@ -1055,3 +1055,6 @@ a.store-btn:focus-visible { box-shadow: 0 0 0 3px var(--gold); }
 }
 .rules-link { margin-top: 12px; color: var(--accent); font-size: 13.5px; font-weight: 700; text-decoration: none; }
 .rules-link:hover, .rules-link:focus-visible { text-decoration: underline; outline: none; }
+.rules-link-play { display: block; font-weight: 800; }
+.web-play { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; min-height: 44px; color: var(--felt-deep); background: var(--gold); border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 14px; }
+.web-play:hover { background: #f7cf6a; }
