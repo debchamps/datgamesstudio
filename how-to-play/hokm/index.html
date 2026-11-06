@@ -8,6 +8,17 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'AW-7662884847');
+      gtag('config', 'G-677P55P83T');
+      document.addEventListener('click', function (e) {
+        var a = e.target.closest && e.target.closest('a');
+        if (!a) return;
+        var h = a.href || '';
+        if (a.classList.contains('store-btn') || /play\.google\.com|apps\.apple\.com/.test(h)) {
+          gtag('event', 'store_click', { store: /apple/.test(h) ? 'app_store' : 'google_play', page_path: location.pathname, link_url: h });
+        } else if (/play-big|play-card-btn|play-tile|phc-/.test(a.className) || /^\/play\//.test(a.getAttribute('href') || '')) {
+          gtag('event', 'play_click', { page_path: location.pathname, link_url: h });
+        }
+      });
     </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
