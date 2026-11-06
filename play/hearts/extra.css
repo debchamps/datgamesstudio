@@ -1,0 +1,20 @@
+/* Hearts-specific tweaks on top of /play/play.css */
+.pass-btn { min-height: 46px; }
+.pass-btn:disabled { opacity: 0.45; cursor: default; }
+.hand-card.is-pickable { cursor: pointer; }
+.hand-card.is-pickable:hover, .hand-card.is-pickable:focus-visible { transform: translateY(-12px); z-index: 20; }
+.hand-card.is-pickable .pcard { box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3); }
+.hand-card.is-selected { transform: translateY(-22px); z-index: 20; }
+.hand-card.is-selected .pcard { box-shadow: 0 0 0 4px var(--gold), 0 6px 14px rgba(0, 0, 0, 0.3); }
+.hand-card.is-new .pcard { box-shadow: 0 0 0 3px #6ff0b5, 0 6px 14px rgba(0, 0, 0, 0.3); }
+.dlg-note.moon { padding: 10px 12px; background: rgba(91, 63, 196, 0.12); border-radius: 10px; }
+.score-pill small { color: var(--muted); font-weight: 500; }
+.chip-contract { pointer-events: none; }
+@media (max-width: 760px) {
+  .seat-north { top: 44px; }
+  .slot-north { top: 22%; }
+  .table { height: 345px; }
+  .seat-west > div, .seat-east > div { display: block; }
+  .seat-west, .seat-east { padding: 4px 8px 4px 4px; }
+  .seat span { font-size: 10px; }
+}
