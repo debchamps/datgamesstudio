@@ -26,8 +26,16 @@
 .crumbs a:hover { text-decoration: underline; }
 
 /* ---------- Stage: bar, table, hand ---------- */
-.game-wrap { position: relative; width: min(1120px, 100%); margin: 0 auto; padding: 12px 24px 18px; }
-.game-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.game-wrap { position: relative; width: min(1120px, 100%); margin: 0 auto; padding: 14px 24px 18px; }
+.game-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 10px; }
+.game-title {
+  margin: 0 6px 0 0;
+  color: #fff;
+  font: 800 19px/1.2 var(--display);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.game-bar-actions { margin-left: auto; }
 .bar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .deal-pill {
   padding: 7px 14px;
@@ -432,6 +440,9 @@
   .play-top h1 { font-size: 22px; }
   .game-wrap { padding: 8px 8px 12px; }
   .game-bar { margin-bottom: 8px; }
+  .game-title { flex-basis: 100%; font-size: 17px; }
+  .wide-only { display: none; }
+  .deal-pill { padding: 6px 11px; font-size: 12px; }
   .score-pill { gap: 8px; padding: 6px 10px; font-size: 12px; }
   .score-pill small { display: none; }
   .bar-btn { min-height: 38px; padding: 6px 10px; font-size: 13px; }
@@ -469,8 +480,6 @@
 }
 @media (max-width: 380px) { .play-page { --cw: 46px; --tw: 48px; } }
 @media (min-width: 761px) and (max-height: 760px) {
-  .play-top .crumbs, .play-top p { display: none; }
-  .play-top { padding-top: 10px; }
   .seat { flex-direction: row; gap: 6px; }
   .seat img { width: 40px; height: 40px; border-width: 2px; }
   .seat > div { min-width: 0; padding: 4px 9px; text-align: left; }
