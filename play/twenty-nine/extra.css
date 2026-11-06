@@ -6,17 +6,14 @@
 
 .chip-trump.mine { outline: 2px solid rgba(242, 193, 78, 0.7); }
 .chip-trump.hidden-trump { color: rgba(255, 255, 255, 0.8) !important; }
-.seat.is-bidder { box-shadow: 0 0 0 3px rgba(242, 193, 78, 0.45); }
 
-.reveal-btn { position: absolute; right: 14px; bottom: 14px; z-index: 7; min-height: 44px; padding: 8px 16px; color: var(--felt-deep); background: var(--gold); border: 0; border-radius: 12px; font: 800 14px var(--display); cursor: pointer; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35); }
+.reveal-btn { position: absolute; right: calc(var(--rim) + 16px); bottom: calc(var(--rim) + 22px); z-index: 7; min-height: 46px; padding: 8px 18px; color: var(--felt-deep); background: linear-gradient(180deg, #ffd977, var(--gold)); border: 0; border-radius: 12px; font: 800 14px var(--display); cursor: pointer; box-shadow: 0 4px 0 #a37a1d, 0 10px 20px rgba(0, 0, 0, 0.35); animation: pop-in-btn 220ms ease-out; }
+@keyframes pop-in-btn { from { transform: scale(0.9); } to { transform: none; } }
 .reveal-btn[hidden] { display: none; }
 .reveal-btn.is-hint { outline: 3px solid #6ff0b5; outline-offset: 2px; }
 
 @media (max-width: 760px) {
   .hand-card { margin-left: calc(var(--cw) * -0.3); }
   .hand-card:first-child { margin-left: 0; }
-  .table { height: 350px; }
-  .seat-north { top: 44px; }
-  .slot-north { top: 22%; }
-  .reveal-btn { right: 8px; bottom: 10px; }
+  .reveal-btn { right: calc(var(--rim) + 6px); bottom: calc(var(--rim) + 30px); min-height: 40px; padding: 6px 12px; font-size: 13px; }
 }

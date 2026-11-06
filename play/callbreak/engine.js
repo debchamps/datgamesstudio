@@ -11,7 +11,7 @@ export const MIN_BID = 1;
 export const MAX_BID = 8;
 
 const order = (rank) => RANKS.indexOf(rank) + 1; // 2 = 1 ... A = 13
-const cardId = (c) => c.suit + c.rank;
+export const cardId = (c) => c.suit + c.rank;
 export const sameCard = (a, b) => a.suit === b.suit && a.rank === b.rank;
 export const nextSeat = (seat) => SEATS[(SEATS.indexOf(seat) + 1) % 4];
 

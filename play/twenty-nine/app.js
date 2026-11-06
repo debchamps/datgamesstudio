@@ -34,16 +34,18 @@ let hintBid = undefined; // number = bid this, null = pass, undefined = none
 let hintTrump = null;
 let hintReveal = false;
 let shownTrick = null;
+const seenTrick = new Set(); // cards already on the table, so only a new card animates in
 let bubbles = {}; // seat -> short text shown on the chip during bidding
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const isRed = (c) => c.suit === "H" || c.suit === "D";
+const FACE = new Set(["J", "Q", "K"]);
 
 function cardEl(card) {
   const d = document.createElement("div");
-  d.className = `pcard ${isRed(card) ? "red" : "black"}`;
+  d.className = `pcard ${isRed(card) ? "red" : "black"}${FACE.has(card.rank) ? " face" : ""}`;
   d.setAttribute("role", "img");
   d.setAttribute("aria-label", `${card.rank} of ${SUIT_NAME[card.suit].toLowerCase()}`);
-  d.innerHTML = `<span class="pc-corner">${card.rank}<i>${GLYPH[card.suit]}</i></span><span class="pc-pip">${GLYPH[card.suit]}</span><span class="pc-pts">${E.pts(card) ? E.pts(card) : ""}</span>`;
+  d.innerHTML = `<span class="pc-corner">${card.rank}<i>${GLYPH[card.suit]}</i></span><span class="pc-pip" data-rank="${card.rank}">${GLYPH[card.suit]}</span><span class="pc-corner pc-br">${card.rank}<i>${GLYPH[card.suit]}</i></span><span class="pc-pts">${E.pts(card) ? E.pts(card) : ""}</span>`;
   return d;
 }
 
@@ -104,9 +106,11 @@ function render() {
   // Trick
   el.trick.replaceChildren();
   const plays = shownTrick ? shownTrick.plays : state.currentTrick;
+  if (!plays.length) seenTrick.clear();
   for (const p of plays) {
     const slot = document.createElement("div");
-    slot.className = `trick-slot slot-${p.player.toLowerCase()}` + (shownTrick && shownTrick.winner === p.player ? " is-winner" : "");
+    slot.className = `trick-slot slot-${p.player.toLowerCase()}` + (seenTrick.has(E.cardId(p.card)) ? "" : " fresh") + (shownTrick && shownTrick.winner === p.player ? " is-winner" : "");
+    seenTrick.add(E.cardId(p.card));
     slot.appendChild(cardEl(p.card));
     el.trick.appendChild(slot);
   }

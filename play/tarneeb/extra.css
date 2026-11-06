@@ -1,10 +1,6 @@
 /* Tarneeb-specific tweaks on top of /play/play.css */
 .bid-buttons-29 { grid-template-columns: repeat(8, 1fr); }
 .bid-pass { grid-column: span 1; }
-.seat.is-bidder { box-shadow: 0 0 0 3px rgba(242, 193, 78, 0.45); }
 @media (max-width: 760px) {
   .bid-buttons-29 { grid-template-columns: repeat(4, 1fr); }
-  .seat-north { top: 44px; }
-  .slot-north { top: 22%; }
-  .table { height: 345px; }
 }

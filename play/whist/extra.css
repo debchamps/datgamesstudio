@@ -1,7 +1,2 @@
 /* Whist-specific tweaks on top of /play/play.css */
 .chip-contract { pointer-events: none; }
-@media (max-width: 760px) {
-  .seat-north { top: 44px; }
-  .slot-north { top: 22%; }
-  .table { height: 345px; }
-}

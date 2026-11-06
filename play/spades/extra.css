@@ -1,15 +1,9 @@
 /* Spades-specific tweaks on top of /play/play.css */
 .bid-buttons-spades { grid-template-columns: repeat(7, 1fr); }
-.bid-buttons-spades .bid-btn { aspect-ratio: auto; min-height: 40px; font-size: 16px; }
-.bid-nil { grid-column: span 2; background: #5b3fc4; }
-.bid-nil:hover { background: #4a32a8; }
-.bid-nil.is-hint { background: var(--gold); color: var(--felt-deep); }
-.seat.is-nil img { box-shadow: 0 0 0 2px #b9a6ff; }
+.bid-nil { grid-column: span 2; background: linear-gradient(180deg, #6d52d6, #4e37b0); box-shadow: 0 3px 0 #2f1f78; }
+.bid-nil.is-hint { color: var(--felt-deep); background: linear-gradient(180deg, #ffd977, var(--gold)); }
 .chip-trump.muted { color: rgba(255, 255, 255, 0.8) !important; }
 .chip-contract { pointer-events: none; }
 @media (max-width: 760px) {
   .bid-buttons-spades { grid-template-columns: repeat(5, 1fr); }
-  .seat-north { top: 44px; }
-  .slot-north { top: 22%; }
-  .table { height: 345px; }
 }

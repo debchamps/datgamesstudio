@@ -23,15 +23,17 @@ let run = 0; // bumps on "new match" so stale timers stop
 let hintCard = null;
 let hintBid = null;
 let shownTrick = null; // { plays, winner } while a finished trick is on display
+const seenTrick = new Set(); // cards already on the table, so only a new card animates in
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const isRed = (c) => c.suit === "H" || c.suit === "D";
+const FACE = new Set(["J", "Q", "K"]);
 
 function cardEl(card, extra = "") {
   const d = document.createElement("div");
-  d.className = `pcard ${isRed(card) ? "red" : "black"} ${extra}`.trim();
+  d.className = `pcard ${isRed(card) ? "red" : "black"}${FACE.has(card.rank) ? " face" : ""} ${extra}`.trim();
   d.setAttribute("role", "img");
   d.setAttribute("aria-label", `${card.rank} of ${{ S: "spades", H: "hearts", C: "clubs", D: "diamonds" }[card.suit]}`);
-  d.innerHTML = `<span class="pc-corner">${card.rank}<i>${GLYPH[card.suit]}</i></span><span class="pc-pip">${GLYPH[card.suit]}</span>`;
+  d.innerHTML = `<span class="pc-corner">${card.rank}<i>${GLYPH[card.suit]}</i></span><span class="pc-pip" data-rank="${card.rank}">${GLYPH[card.suit]}</span><span class="pc-corner pc-br">${card.rank}<i>${GLYPH[card.suit]}</i></span>`;
   return d;
 }
 
@@ -67,9 +69,11 @@ function render() {
   // Trick in the middle
   el.trick.replaceChildren();
   const plays = shownTrick ? shownTrick.plays : state.currentTrick;
+  if (!plays.length) seenTrick.clear();
   for (const p of plays) {
     const slot = document.createElement("div");
-    slot.className = `trick-slot slot-${p.player.toLowerCase()}` + (shownTrick && shownTrick.winner === p.player ? " is-winner" : "");
+    slot.className = `trick-slot slot-${p.player.toLowerCase()}` + (seenTrick.has(E.cardId(p.card)) ? "" : " fresh") + (shownTrick && shownTrick.winner === p.player ? " is-winner" : "");
+    seenTrick.add(E.cardId(p.card));
     slot.appendChild(cardEl(p.card));
     el.trick.appendChild(slot);
   }
