@@ -422,6 +422,7 @@ def head(title: str, desc: str, path: str, ld: list[dict]) -> str:
       </button>
       <nav class="site-nav" id="site-nav" data-site-nav>
         <a href="/#games">Games</a>
+        <a href="/play/">Play online</a>
         <a href="/how-to-play/">How to play</a>
         <a href="/#studio">Studio</a>
         <a href="/#contact">Contact</a>
@@ -437,6 +438,7 @@ FOOT = """    <footer class="site-footer">
         <span>Free card games &amp; puzzles for Android and iPhone.</span>
       </div>
       <nav aria-label="Footer">
+        <a href="/play/">Play online</a>
         <a href="/how-to-play/">How to play</a>
         <a href="/privacy-policy/">Privacy Policy</a>
         <a href="https://play.google.com/store/apps/developer?id=DAT+Games&amp;utm_source=website&amp;utm_medium=organic&amp;utm_campaign=how_to_play&amp;utm_content=footer" rel="noopener">Google Play</a>
@@ -466,6 +468,27 @@ def store_row(g: dict) -> str:
 
 
 WEB_PLAY = {"callbreak", "twenty-nine", "tarneeb", "hearts", "hokm", "spades", "whist", "bray"}
+# Order and one-line pitch for the /play/ hub and the homepage band.
+PLAY_ORDER = ["callbreak", "twenty-nine", "hearts", "spades", "bray", "tarneeb", "hokm", "whist"]
+PLAY_TAG = {
+    "callbreak": "Spades are always trump",
+    "twenty-nine": "Bid, hidden trump, partners",
+    "hearts": "Dodge the hearts and the Queen",
+    "spades": "The partnership bidding classic",
+    "bray": "Hearts, Bengali style",
+    "tarneeb": "Arabic partnership bidding",
+    "hokm": "The Persian trump caller",
+    "whist": "Pure trick-taking, no bidding",
+}
+
+
+def play_button(g: dict, cls: str = "play-big") -> str:
+    if g["slug"] not in WEB_PLAY:
+        return ""
+    return (
+        f'<a class="{cls}" href="/play/{g["slug"]}/"><span class="pb-icon" aria-hidden="true">▶</span>'
+        f'<span><strong>Play {html.escape(short(g))} now</strong><small>Free in your browser · no download</small></span></a>'
+    )
 
 
 def web_play(g: dict) -> str:
@@ -540,6 +563,7 @@ def game_page(g: dict) -> str:
             </div>
           </div>
           <p class="guide-lede">{html.escape(g['lede'])}</p>
+          {play_button(g)}
           <ul class="guide-facts">{facts}</ul>
         </div>
       </section>
@@ -571,6 +595,7 @@ def game_page(g: dict) -> str:
             <div>
               <h2>Ready to play {html.escape(s)}?</h2>
               <p>Free, offline, no signup. Learn the rest at the table with built-in hints.</p>
+              {play_button(g)}
               {store_row(g)}
             </div>
           </section>
@@ -629,6 +654,52 @@ def hub_page() -> str:
 """ + FOOT
 
 
+def play_hub_page() -> str:
+    path = "/play/"
+    title = "Play Card Games Online Free: Callbreak, 29, Hearts, Spades & More | DAT Games"
+    desc = "Play Callbreak, 29, Hearts, Spades, Bray, Tarneeb, Hokm and Whist free in your browser against computer opponents. No download, no signup."
+    by_slug = {g["slug"]: g for g in GAMES}
+    tiles = "\n".join(
+        f"""          <article class="play-hub-card" style="--accent:{g['accent']}">
+            <a class="phc-main" href="/play/{g['slug']}/">
+              <img src="/assets/img/icons/{g['icon']}.png" alt="" width="72" height="72" loading="lazy">
+              <span class="hub-kind">{html.escape(g['kind'])}</span>
+              <h2>{html.escape(g['name'])}</h2>
+              <p>{html.escape(PLAY_TAG[g['slug']])}</p>
+              <span class="phc-cta"><span aria-hidden="true">▶</span> Play now</span>
+            </a>
+            <a class="phc-rules" href="/how-to-play/{g['slug']}/">How to play {html.escape(short(g))} <span aria-hidden="true">→</span></a>
+          </article>"""
+        for g in (by_slug[x] for x in PLAY_ORDER)
+    )
+    ld = [
+        {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": "Play card games online",
+            "url": f"{SITE}{path}",
+            "hasPart": [{"@type": "VideoGame", "name": short(by_slug[x]), "url": f"{SITE}/play/{x}/"} for x in PLAY_ORDER],
+        }
+    ]
+    return head(title, desc, path, ld) + f"""
+    <main id="main" class="guide-page">
+      <section class="guide-hero hub-hero">
+        <div class="guide-hero-inner">
+          <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Play online</span></nav>
+          <p class="eyebrow">Free · no download · no signup</p>
+          <h1>Play card games in your browser</h1>
+          <p class="guide-lede">Deal yourself in right now against computer opponents. Each game plays by the same rules as our apps; when you want stats, lessons and a stronger computer, the full app is one tap away.</p>
+        </div>
+      </section>
+      <section class="section section-light">
+        <div class="section-inner play-hub-grid">
+{tiles}
+        </div>
+      </section>
+    </main>
+""" + FOOT
+
+
 def main() -> None:
     out = ROOT / "how-to-play"
     out.mkdir(exist_ok=True)
@@ -637,7 +708,8 @@ def main() -> None:
         d = out / g["slug"]
         d.mkdir(exist_ok=True)
         (d / "index.html").write_text(game_page(g))
-    print(f"wrote hub + {len(GAMES)} guides to {out}")
+    (ROOT / "play" / "index.html").write_text(play_hub_page())
+    print(f"wrote hub + {len(GAMES)} guides to {out}, and /play/")
 
 
 if __name__ == "__main__":
