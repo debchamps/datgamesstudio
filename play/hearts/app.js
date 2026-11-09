@@ -198,6 +198,7 @@ async function playCard(seat, c, token) {
   const before = state.completedTricks.length;
   const wasBroken = state.heartsBroken;
   state = E.play(state, seat, c);
+  if (seat === "SOUTH") window.DATAnalytics?.cardPlayed();
   hintCards = [];
   if (!wasBroken && state.heartsBroken) setStatus("Hearts are broken.");
   if (state.completedTricks.length > before) {
@@ -238,6 +239,8 @@ function ranking() {
 function showDealOver() {
   const r = state.dealResult;
   const matchDone = state.phase === "MATCH_OVER";
+  window.DATAnalytics?.roundFinish({ round_number: state.dealNumber, result: r.dealScores.SOUTH <= 0 ? "clean" : "points_taken" });
+  if (matchDone) window.DATAnalytics?.finishMatch({ result: ranking()[0] === "SOUTH" ? "won" : "lost" });
   const low = Math.min(...E.POSITIONS.map((p) => state.matchScores[p]));
   const rows = [...E.POSITIONS]
     .sort((a, b) => state.matchScores[a] - state.matchScores[b])
@@ -279,7 +282,7 @@ function showMatchOver() {
   const order = ranking();
   const place = order.indexOf("SOUTH") + 1;
   const won = order[0] === "SOUTH";
-  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
+  window.DATAnalytics?.finishMatch({ result: won ? 'won' : 'lost' });
   const list = order
     .map((s, i) => `<li class="${s === "SOUTH" ? "me" : ""}"><span>${i + 1}</span><strong>${NAMES[s]}</strong><em>${state.matchScores[s]}</em></li>`)
     .join("");
@@ -300,8 +303,8 @@ function showMatchOver() {
   el.overlay.querySelector("[data-again]").addEventListener("click", newMatch);
 }
 
-function newMatch() {
-  window.datTrack && datTrack('game_start');
+function newMatch(event) {
+  window.DATAnalytics?.startMatch(event);
   run++;
   el.overlay.hidden = true;
   selected = [];

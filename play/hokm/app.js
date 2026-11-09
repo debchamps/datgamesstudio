@@ -150,6 +150,7 @@ async function advance() {
 async function playCard(seat, card, token) {
   const before = state.completedTricks.length;
   state = E.play(state, seat, card);
+  if (seat === "SOUTH") window.DATAnalytics?.cardPlayed();
   hintCard = null;
   if (state.completedTricks.length > before) {
     shownTrick = { plays: state.lastCompletedTrick, winner: state.lastTrickWinner };
@@ -188,6 +189,8 @@ function showRoundOver() {
   const r = state.roundResult;
   const matchDone = state.phase === "MATCH_OVER";
   const weWon = r.winningTeam === 1;
+  window.DATAnalytics?.roundFinish({ round_number: state.handNumber, result: weWon ? "won" : "lost" });
+  if (matchDone) window.DATAnalytics?.finishMatch({ result: state.matchWinnerTeam === 1 ? "won" : "lost" });
   const hakemUs = r.hakemTeam === 1;
   const kotNote = r.kot
     ? `<p class="dlg-note moon">🧹 <b>Kot!</b> ${weWon ? "You swept" : "They swept"} all ${E.TRICKS_TO_WIN_HAND} tricks${r.hakemTeam === r.winningTeam ? "" : " against the Hâkem"}: <b>${r.points} points</b>.</p>`
@@ -222,7 +225,7 @@ function showRoundOver() {
 
 function showMatchOver() {
   const won = state.matchWinnerTeam === 1;
-  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
+  window.DATAnalytics?.finishMatch({ result: won ? 'won' : 'lost' });
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Match complete</p>
@@ -240,8 +243,8 @@ function showMatchOver() {
   el.overlay.querySelector("[data-again]").addEventListener("click", newMatch);
 }
 
-async function newMatch() {
-  window.datTrack && datTrack('game_start');
+async function newMatch(event) {
+  window.DATAnalytics?.startMatch(event);
   run++;
   const token = run;
   el.overlay.hidden = true;

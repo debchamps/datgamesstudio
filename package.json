@@ -1,0 +1,13 @@
+{
+  "name": "dat-games-studio-site",
+  "private": true,
+  "scripts": {
+    "test": "node --experimental-vm-modules --test tests/analytics.test.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "29.1.1"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}

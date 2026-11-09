@@ -194,6 +194,7 @@ async function advance() {
 async function playCard(seat, card, token) {
   const before = state.completedTricks.length;
   state = E.play(state, seat, card);
+  if (seat === "SOUTH") window.DATAnalytics?.cardPlayed();
   hintCard = null;
   if (state.completedTricks.length > before) {
     const plays = state.lastCompletedTrick;
@@ -246,6 +247,8 @@ function showRoundOver() {
   const weBid = r.contractTeam === 1;
   const title = weBid ? (r.made ? "You made the bid!" : "Bid missed") : r.made ? "Opponents made their bid" : "You set them!";
   const good = weBid === r.made;
+  window.DATAnalytics?.roundFinish({ round_number: state.gameNumber, result: good ? "won" : "lost" });
+  if (matchDone) window.DATAnalytics?.finishMatch({ result: state.matchWinnerTeam === 1 ? "won" : "lost" });
   const bidderTricks = r.teamTricks[r.contractTeam];
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
@@ -273,7 +276,7 @@ function showRoundOver() {
 
 function showMatchOver() {
   const won = state.matchWinnerTeam === 1;
-  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
+  window.DATAnalytics?.finishMatch({ result: won ? 'won' : 'lost' });
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Match complete</p>
@@ -297,8 +300,8 @@ function resetHints() {
   shownTrick = null;
 }
 
-function newMatch() {
-  window.datTrack && datTrack('game_start');
+function newMatch(event) {
+  window.DATAnalytics?.startMatch(event);
   run++;
   notice = "";
   el.overlay.hidden = true;

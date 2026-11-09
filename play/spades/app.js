@@ -160,6 +160,7 @@ async function playCard(seat, card, token) {
   const before = state.completedTricks.length;
   const wasBroken = state.spadesBroken;
   state = E.play(state, seat, card);
+  if (seat === "SOUTH") window.DATAnalytics?.cardPlayed();
   hintCard = null;
   if (!wasBroken && state.spadesBroken) setStatus("Spades are broken.");
   if (state.completedTricks.length > before) {
@@ -207,6 +208,8 @@ function showRoundOver() {
     `<tr class="${t === 1 ? "me" : ""}"><th>${label}</th><td>${r.teamBids[t]}</td><td>${r.effective[t]}</td><td class="${r.delta[t] >= 0 ? "good" : "bad"}">${fmt(r.delta[t])}</td><td><strong>${r.teamScores[t]}</strong></td></tr>`;
   const good = r.delta[1] >= r.delta[2];
   const madeUs = r.teamBids[1] === 0 || r.effective[1] >= r.teamBids[1];
+  window.DATAnalytics?.roundFinish({ round_number: state.gameNumber, result: madeUs ? "won" : "lost" });
+  if (matchDone) window.DATAnalytics?.finishMatch({ result: state.teamScores[1] > state.teamScores[2] ? "won" : "lost" });
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Round ${state.gameNumber}</p>
@@ -231,7 +234,7 @@ function showRoundOver() {
 
 function showMatchOver() {
   const won = state.matchWinnerTeam === 1;
-  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
+  window.DATAnalytics?.finishMatch({ result: won ? 'won' : 'lost' });
   const mercy = Math.min(state.teamScores[1], state.teamScores[2]) <= E.MERCY;
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
@@ -250,8 +253,8 @@ function showMatchOver() {
   el.overlay.querySelector("[data-again]").addEventListener("click", newMatch);
 }
 
-function newMatch() {
-  window.datTrack && datTrack('game_start');
+function newMatch(event) {
+  window.DATAnalytics?.startMatch(event);
   run++;
   el.overlay.hidden = true;
   hintCard = null;

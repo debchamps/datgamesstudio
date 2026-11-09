@@ -139,6 +139,7 @@ async function advance() {
 async function playCard(seat, card, token) {
   const before = state.completedTricks.length;
   state = E.play(state, seat, card);
+  if (seat === "SOUTH") window.DATAnalytics?.cardPlayed();
   hintCard = null;
   if (state.completedTricks.length > before) {
     const plays = state.lastCompletedTrick;
@@ -193,6 +194,11 @@ function scoreTable(result, withDeal) {
 function showRoundOver() {
   const r = state.roundResult;
   const last = state.gameNumber >= state.totalGames;
+  window.DATAnalytics?.roundFinish({ round_number: state.gameNumber, result: r.roundScores.SOUTH >= r.bids.SOUTH ? "won" : "lost" });
+  if (last) {
+    const winner = E.SEATS.reduce((best, seat) => state.matchScores[seat] > state.matchScores[best] ? seat : best);
+    window.DATAnalytics?.finishMatch({ result: winner === "SOUTH" ? "won" : "lost" });
+  }
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Deal ${state.gameNumber} of ${state.totalGames}</p>
@@ -212,7 +218,7 @@ function showMatchOver() {
   render();
   const ranked = E.SEATS.slice().sort((a, b) => state.matchScores[b] - state.matchScores[a]);
   const youWon = state.matchWinner === "SOUTH";
-  window.datTrack && datTrack('match_finish', { result: youWon ? 'won' : 'lost' });
+  window.DATAnalytics?.finishMatch({ result: youWon ? 'won' : 'lost' });
   const place = ranked.indexOf("SOUTH") + 1;
   const list = ranked
     .map((s, i) => `<li class="${s === "SOUTH" ? "me" : ""}"><span>${i + 1}</span><strong>${NAMES[s]}</strong><em>${state.matchScores[s].toFixed(1)}</em></li>`)
@@ -234,8 +240,8 @@ function showMatchOver() {
   el.overlay.querySelector("[data-again]").addEventListener("click", newMatch);
 }
 
-function newMatch() {
-  window.datTrack && datTrack('game_start');
+function newMatch(event) {
+  window.DATAnalytics?.startMatch(event);
   run++;
   el.overlay.hidden = true;
   el.bidButtons.replaceChildren();

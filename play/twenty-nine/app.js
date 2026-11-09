@@ -298,6 +298,7 @@ async function playCard(seat, card, token) {
   const before = state.completedTricks.length;
   const hadPair = state.pairDeclaredBy;
   state = E.play(state, seat, card);
+  if (seat === "SOUTH") window.DATAnalytics?.cardPlayed();
   hintCard = null;
   hintReveal = false;
   if (!hadPair && state.pairDeclaredBy) setStatus(`${NAMES[state.pairDeclaredBy]} declared the K+Q pair of trump!`);
@@ -395,6 +396,8 @@ function showRoundOver() {
       ? r.succeeded ? "You made the bid!" : "Bid missed"
       : r.succeeded ? "Opponents made their bid" : "You set them!";
   const good = r.bidderUs === r.succeeded;
+  window.DATAnalytics?.roundFinish({ round_number: match.round, result: good ? "won" : "lost" });
+  if (decided) window.DATAnalytics?.finishMatch({ result: match.us >= E.MATCH_SCORE || match.them <= -E.MATCH_SCORE ? "won" : "lost" });
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Round ${match.round} · ${r.isSingleHand ? "Single Hand" : `Trump ${GLYPH[r.trump]} ${SUIT_NAME[r.trump]}`}${r.multiplier > 1 ? ` · ${r.multiplier === 4 ? "Redoubled ×4" : "Doubled ×2"}` : ""}</p>
@@ -426,7 +429,7 @@ function showRoundOver() {
 
 function showMatchOver() {
   const won = match.us >= E.MATCH_SCORE || match.them <= -E.MATCH_SCORE;
-  window.datTrack && datTrack('match_finish', { result: won ? 'won' : 'lost' });
+  window.DATAnalytics?.finishMatch({ result: won ? 'won' : 'lost' });
   el.overlay.hidden = false;
   el.overlay.innerHTML = `<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-title">
       <p class="dlg-eyebrow">Match complete</p>
@@ -460,8 +463,8 @@ function startRound() {
   advance();
 }
 
-function newMatch() {
-  window.datTrack && datTrack('game_start');
+function newMatch(event) {
+  window.DATAnalytics?.startMatch(event);
   match = { us: 0, them: 0, dealer: "WEST", round: 1 };
   el.overlay.hidden = true;
   startRound();

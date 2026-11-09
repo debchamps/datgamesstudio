@@ -7,3 +7,6 @@ The site contains:
 - A migrated and redesigned DAT Games Studio landing page.
 - A privacy policy page for the mobile game catalog.
 - `app-ads.txt` for advertising network verification.
+
+Analytics events, reporting setup, and local verification are documented in
+[docs/analytics.md](docs/analytics.md).
