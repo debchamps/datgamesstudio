@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 300">
+  <defs>
+    <linearGradient id="body" gradientUnits="userSpaceOnUse" x1="70" y1="70" x2="200" y2="280">
+      <stop offset="0" stop-color="#ff6b5c"/><stop offset="0.55" stop-color="#e8242f"/><stop offset="1" stop-color="#b3121f"/>
+    </linearGradient>
+    <radialGradient id="shade" gradientUnits="userSpaceOnUse" cx="225" cy="250" r="200">
+      <stop offset="0" stop-color="#6a0510" stop-opacity="0.55"/><stop offset="1" stop-color="#6a0510" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="85" cy="120" r="120">
+      <stop offset="0" stop-color="#ffc2b8" stop-opacity="0.8"/><stop offset="1" stop-color="#ffc2b8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="leaf" gradientUnits="userSpaceOnUse" x1="160" y1="12" x2="200" y2="62">
+      <stop offset="0" stop-color="#8be35a"/><stop offset="1" stop-color="#2f9a2c"/>
+    </linearGradient>
+    <clipPath id="clip"><path d="M140 98 C118 70 78 62 50 80 C18 100 8 142 10 182 C12 236 46 270 82 278 C106 283 122 274 140 271 C158 274 174 283 198 278 C234 270 268 236 270 182 C272 142 262 100 230 80 C202 62 162 70 140 98 Z"/></clipPath>
+  </defs>
+  <path d="M141 98 C139 74 142 46 154 22" fill="none" stroke="#3b220e" stroke-width="17" stroke-linecap="round"/>
+  <path d="M141 98 C139 74 142 46 154 22" fill="none" stroke="#8a5428" stroke-width="9" stroke-linecap="round"/>
+  <g id="silhouette">
+    <path d="M140 98 C118 70 78 62 50 80 C18 100 8 142 10 182 C12 236 46 270 82 278 C106 283 122 274 140 271 C158 274 174 283 198 278 C234 270 268 236 270 182 C272 142 262 100 230 80 C202 62 162 70 140 98 Z" fill="url(#body)"/>
+    <path d="M150 60 C162 22 198 8 234 12 C228 46 196 66 150 60 Z" fill="url(#leaf)"/>
+  </g>
+  <g clip-path="url(#clip)">
+    <rect x="0" y="60" width="280" height="240" fill="url(#glow)"/>
+    <rect x="0" y="60" width="280" height="240" fill="url(#shade)"/>
+    <path d="M140 98 C118 70 78 62 50 80 C18 100 8 142 10 182 C12 236 46 270 82 278 C106 283 122 274 140 271 C158 274 174 283 198 278 C234 270 268 236 270 182 C272 142 262 100 230 80 C202 62 162 70 140 98 Z" fill="none" stroke="#7d0a16" stroke-width="20" stroke-opacity="0.22"/>
+    <path d="M128 104 C132 110 148 110 152 104" fill="none" stroke="#7d0a16" stroke-width="6" stroke-linecap="round" opacity="0.5"/>
+  </g>
+  <path d="M140 98 C118 70 78 62 50 80 C18 100 8 142 10 182 C12 236 46 270 82 278 C106 283 122 274 140 271 C158 274 174 283 198 278 C234 270 268 236 270 182 C272 142 262 100 230 80 C202 62 162 70 140 98 Z" fill="none" stroke="#4f0710" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M150 60 C162 22 198 8 234 12 C228 46 196 66 150 60 Z" fill="none" stroke="#1b4f17" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M156 56 C180 44 204 30 226 16" fill="none" stroke="#1f6b1c" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  <path d="M166 24 C176 18 190 15 202 16" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity="0.55"/>
+  <path d="M40 140 C44 112 62 94 88 90 C70 104 58 124 56 152 C48 154 40 150 40 140 Z" fill="#ffffff" opacity="0.88"/>
+  <circle cx="50" cy="176" r="7" fill="#ffffff" opacity="0.8"/>
+</svg>

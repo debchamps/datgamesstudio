@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 320">
+  <defs>
+    <linearGradient id="roof" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="130">
+      <stop offset="0" stop-color="#ff7a52"/><stop offset="1" stop-color="#c8341c"/>
+    </linearGradient>
+    <linearGradient id="wall" gradientUnits="userSpaceOnUse" x1="40" y1="0" x2="240" y2="0">
+      <stop offset="0" stop-color="#ffe08a"/><stop offset="0.6" stop-color="#ffcf5e"/><stop offset="1" stop-color="#e2a83a"/>
+    </linearGradient>
+    <linearGradient id="brick" gradientUnits="userSpaceOnUse" x1="0" y1="30" x2="0" y2="90">
+      <stop offset="0" stop-color="#d36a4a"/><stop offset="1" stop-color="#9c3e26"/>
+    </linearGradient>
+    <linearGradient id="door" gradientUnits="userSpaceOnUse" x1="0" y1="210" x2="0" y2="310">
+      <stop offset="0" stop-color="#a0602e"/><stop offset="1" stop-color="#6a3816"/>
+    </linearGradient>
+    <radialGradient id="lamp" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="30">
+      <stop offset="0" stop-color="#fff6c4"/><stop offset="0.6" stop-color="#ffc85a"/><stop offset="1" stop-color="#f08a1a"/>
+    </radialGradient>
+  </defs>
+  <g fill="#ffffff" opacity="0.5"><circle cx="214" cy="18" r="9"/><circle cx="228" cy="9" r="7"/><circle cx="242" cy="4" r="5"/></g>
+  <g id="silhouette">
+    <rect x="182" y="40" width="38" height="70" fill="url(#brick)" stroke="#4a1a0c" stroke-width="5"/>
+    <rect x="176" y="28" width="50" height="14" rx="4" fill="#8a3420" stroke="#4a1a0c" stroke-width="5"/>
+    <rect x="42" y="118" width="196" height="192" fill="url(#wall)" stroke="#6a4208" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M140 14 L268 128 L12 128 Z" fill="url(#roof)" stroke="#5a1408" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+  <path d="M42 290 L238 290" stroke="#c48a2a" stroke-width="4" opacity="0.6"/>
+  <g stroke="#e6b24a" stroke-width="3" opacity="0.55"><path d="M50 150 L232 150"/><path d="M50 210 L110 210"/><path d="M176 210 L232 210"/><path d="M50 250 L110 250"/><path d="M176 250 L232 250"/></g>
+  <g stroke="#a8301a" stroke-width="4" opacity="0.6" fill="none"><path d="M96 76 L184 76"/><path d="M66 102 L214 102"/><path d="M120 50 L160 50"/></g>
+  <path d="M140 30 L62 100" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity="0.45"/>
+  <g transform="translate(90 180)">
+    <rect x="-24" y="-24" width="48" height="48" rx="5" fill="url(#lamp)" stroke="#5a3408" stroke-width="6"/>
+    <path d="M0 -22 L0 22 M-22 0 L22 0" stroke="#7a4a10" stroke-width="5"/>
+    <path d="M-15 -14 L-6 -14" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+  </g>
+  <g transform="translate(200 180)">
+    <rect x="-24" y="-24" width="48" height="48" rx="5" fill="url(#lamp)" stroke="#5a3408" stroke-width="6"/>
+    <path d="M0 -22 L0 22 M-22 0 L22 0" stroke="#7a4a10" stroke-width="5"/>
+    <path d="M-15 -14 L-6 -14" stroke="#ffffff" stroke-width="4" stroke-linecap="round" opacity="0.9"/>
+  </g>
+  <path d="M120 310 L120 236 C120 220 132 210 145 210 C158 210 170 220 170 236 L170 310 Z" fill="url(#door)" stroke="#4a2408" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M145 216 L145 308" stroke="#4a2408" stroke-width="3" opacity="0.6"/>
+  <circle cx="160" cy="266" r="5" fill="#ffd25a" stroke="#4a2408" stroke-width="2.5"/>
+  <rect x="112" y="304" width="66" height="10" rx="3" fill="#b7a58a" stroke="#4a3a24" stroke-width="4"/>
+</svg>

@@ -471,9 +471,9 @@ def store_row(g: dict) -> str:
     return '<div class="store-row">' + "".join(out) + "</div>"
 
 
-WEB_PLAY = {"callbreak", "twenty-nine", "tarneeb", "hearts", "hokm", "spades", "whist", "bray"}
+WEB_PLAY = {"callbreak", "twenty-nine", "tarneeb", "hearts", "hokm", "spades", "whist", "bray", "snake-uncoil"}
 # Order and one-line pitch for the /play/ hub and the homepage band.
-PLAY_ORDER = ["callbreak", "twenty-nine", "hearts", "spades", "bray", "tarneeb", "hokm", "whist"]
+PLAY_ORDER = ["callbreak", "twenty-nine", "hearts", "spades", "bray", "tarneeb", "hokm", "whist", "snake-uncoil"]
 PLAY_TAG = {
     "callbreak": "Spades are always trump",
     "twenty-nine": "Bid, hidden trump, partners",
@@ -483,6 +483,7 @@ PLAY_TAG = {
     "tarneeb": "Arabic partnership bidding",
     "hokm": "The Persian trump caller",
     "whist": "Pure trick-taking, no bidding",
+    "snake-uncoil": "Free every snake, one tap at a time",
 }
 
 
@@ -661,7 +662,7 @@ def hub_page() -> str:
 def play_hub_page() -> str:
     path = "/play/"
     title = "Play Card Games Online Free: Callbreak, 29, Hearts, Spades & More | DAT Games"
-    desc = "Play Callbreak, 29, Hearts, Spades, Bray, Tarneeb, Hokm and Whist free in your browser against computer opponents. No download, no signup."
+    desc = "Play Callbreak, 29, Hearts, Spades, Bray, Tarneeb, Hokm, Whist and the Snake Uncoil puzzle free in your browser. No download, no signup."
     by_slug = {g["slug"]: g for g in GAMES}
     tiles = "\n".join(
         f"""          <article class="play-hub-card" style="--accent:{g['accent']}">
@@ -691,8 +692,8 @@ def play_hub_page() -> str:
         <div class="guide-hero-inner">
           <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Play online</span></nav>
           <p class="eyebrow">Free · no download · no signup</p>
-          <h1>Play card games in your browser</h1>
-          <p class="guide-lede">Deal yourself in right now against computer opponents. Each game plays by the same rules as our apps; when you want stats, lessons and a stronger computer, the full app is one tap away.</p>
+          <h1>Play card games and puzzles in your browser</h1>
+          <p class="guide-lede">Deal yourself in right now against computer opponents, or untangle a board of snakes. Each game plays by the same rules as our apps; when you want more, the full app is one tap away.</p>
         </div>
       </section>
       <section class="section section-light">

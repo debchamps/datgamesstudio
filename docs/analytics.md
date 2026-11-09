@@ -112,3 +112,19 @@ Both Google tag configurations and custom events are suppressed on localhost,
 127.0.0.1, IPv6 loopback, and file previews. Verification does not add synthetic
 players to the live property. After publishing, check Realtime with a real visit,
 then check the detailed reports once GA4 has processed new traffic.
+
+## Snake Uncoil (puzzle) events
+
+`/play/snake-uncoil/` is a puzzle, not a match of rounds, so it reports through
+`platform-site.js` with a `level_number` parameter instead of round results:
+
+| Event | Trigger |
+| --- | --- |
+| `game_start` | A level loads; Action is `auto_start`, `next_level`, `play_again`, `select` or `restart` |
+| `game_engaged` | First snake released on that level attempt |
+| `match_finish` | Level cleared; Result is `stars_1` to `stars_3`, plus `moves` |
+| `match_restart` | An engaged, unfinished level is replaced |
+| `game_control` | `hint` (from the shared click tracker), `restart`, `levels`, `sound_on`, `sound_off` |
+
+`level_number` is not registered as a custom dimension yet; register it (event
+scope) before expecting it in standard reports.

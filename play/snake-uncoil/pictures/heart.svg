@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 260">
+  <defs>
+    <linearGradient id="body" gradientUnits="userSpaceOnUse" x1="60" y1="20" x2="180" y2="250">
+      <stop offset="0" stop-color="#ff86b0"/><stop offset="0.5" stop-color="#f23a74"/><stop offset="1" stop-color="#c0124d"/>
+    </linearGradient>
+    <radialGradient id="shade" gradientUnits="userSpaceOnUse" cx="215" cy="215" r="190">
+      <stop offset="0" stop-color="#6e0630" stop-opacity="0.55"/><stop offset="1" stop-color="#6e0630" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow" gradientUnits="userSpaceOnUse" cx="90" cy="78" r="110">
+      <stop offset="0" stop-color="#ffd3e3" stop-opacity="0.85"/><stop offset="1" stop-color="#ffd3e3" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="clip"><path d="M140 64 C122 24 72 14 40 34 C10 54 6 100 30 130 C56 166 106 202 140 250 C174 202 224 166 250 130 C274 100 270 54 240 34 C208 14 158 24 140 64 Z"/></clipPath>
+  </defs>
+  <g id="silhouette">
+    <path d="M140 64 C122 24 72 14 40 34 C10 54 6 100 30 130 C56 166 106 202 140 250 C174 202 224 166 250 130 C274 100 270 54 240 34 C208 14 158 24 140 64 Z" fill="url(#body)"/>
+  </g>
+  <g clip-path="url(#clip)">
+    <rect x="0" y="0" width="280" height="260" fill="url(#glow)"/>
+    <rect x="0" y="0" width="280" height="260" fill="url(#shade)"/>
+    <path d="M140 64 C122 24 72 14 40 34 C10 54 6 100 30 130 C56 166 106 202 140 250 C174 202 224 166 250 130 C274 100 270 54 240 34 C208 14 158 24 140 64 Z" fill="none" stroke="#8c0b3d" stroke-width="20" stroke-opacity="0.22"/>
+  </g>
+  <path d="M140 64 C122 24 72 14 40 34 C10 54 6 100 30 130 C56 166 106 202 140 250 C174 202 224 166 250 130 C274 100 270 54 240 34 C208 14 158 24 140 64 Z" fill="none" stroke="#5a0827" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M52 66 C62 42 92 34 116 46 C96 50 78 62 70 86 C60 86 50 78 52 66 Z" fill="#ffffff" opacity="0.9"/>
+  <circle cx="60" cy="104" r="7.5" fill="#ffffff" opacity="0.85"/>
+  <path d="M196 56 C210 54 224 60 230 72" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" opacity="0.45"/>
+</svg>
