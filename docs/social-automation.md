@@ -38,7 +38,17 @@ below and check the current docs if a call is rejected.
    # the Instagram account id behind the Page
    curl -s "https://graph.facebook.com/PAGE_ID?fields=instagram_business_account&access_token=PAGE_TOKEN"
    ```
-5. **Store the secrets** (never commit them; do this in your own terminal):
+5. **Easiest way, for steps 4 and 5 together.** Run the helper in your own terminal. It asks for the
+   App Secret and the Explorer token with hidden input, does the exchange, checks the Page token,
+   saves everything to `~/.config/datgames-social/meta.env` (private, outside every repo) and, if
+   you say yes, sets the GitHub secrets:
+   ```bash
+   python3 tools/meta_token_setup.py
+   ```
+   Never store tokens in this repository: it is public, and git history keeps deleted files.
+   Local runs of `social_post.py --live` read that private file automatically.
+
+   **Or store the secrets by hand** (never commit them; do this in your own terminal):
    ```bash
    gh secret set META_PAGE_TOKEN --repo debchamps/datgamesstudio
    gh secret set FB_PAGE_ID --repo debchamps/datgamesstudio

@@ -147,13 +147,36 @@ class SocialPostTests(unittest.TestCase):
         self.assertNotIn("SECRET_TOKEN", str(cm.exception))
         self.assertIn("expired", str(cm.exception))
 
+    def test_private_env_file_fills_missing_secrets_only(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".env", delete=False) as f:
+            f.write("# comment\nMETA_PAGE_TOKEN=from_file\nFB_PAGE_ID=999\n")
+        try:
+            with mock.patch.dict(os.environ, {"FB_PAGE_ID": "from_env"}, clear=True):
+                sp.load_local_env(f.name)
+                self.assertEqual(os.environ["META_PAGE_TOKEN"], "from_file")
+                self.assertEqual(os.environ["FB_PAGE_ID"], "from_env")  # the environment wins
+        finally:
+            os.unlink(f.name)
+        sp.load_local_env("/nonexistent/meta.env")  # a missing file is fine
+
+    def test_token_setup_writes_private_file(self):
+        import stat as st
+        import tempfile
+        import meta_token_setup as mts
+        path = os.path.join(tempfile.mkdtemp(), "sub", "meta.env")
+        mts.write_env({"META_PAGE_TOKEN": "t", "FB_PAGE_ID": "1"}, path)
+        self.assertEqual(st.S_IMODE(os.stat(path).st_mode), 0o600)
+        self.assertIn("META_PAGE_TOKEN=t", open(path).read())
+
     def test_slot_gating_and_missing_secrets(self):
         with mock.patch.object(sys, "argv", ["x", "facebook", "--date", "2026-11-24", "--slot", "17:00"]):
             buf = io.StringIO()
             with redirect_stdout(buf):
                 self.assertEqual(sp.main(), 0)
             self.assertIn("Nothing to do", buf.getvalue())
-        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", ["x", "instagram", "--live", "--date", "2026-11-23"]):
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sp, "load_local_env"), \
+                mock.patch.object(sys, "argv", ["x", "instagram", "--live", "--date", "2026-11-23"]):
             buf = io.StringIO()
             with redirect_stdout(buf):
                 self.assertEqual(sp.main(), 1)

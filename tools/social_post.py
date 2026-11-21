@@ -68,6 +68,22 @@ class Graph:
             raise GraphError(f"{method} {path}: network error {e.reason}") from None
 
 
+LOCAL_ENV = os.path.expanduser("~/.config/datgames-social/meta.env")
+
+
+def load_local_env(path: str = LOCAL_ENV) -> None:
+    """For runs on your own machine: fill missing secrets from the private file written by
+    meta_token_setup.py (outside every repo). On GitHub the secrets come from the environment."""
+    try:
+        lines = open(path).read().splitlines()
+    except OSError:
+        return
+    for line in lines:
+        key, sep, value = line.partition("=")
+        if sep and not key.startswith("#") and key.strip() and not os.environ.get(key.strip()):
+            os.environ[key.strip()] = value.strip()
+
+
 def marker_re(n: int) -> re.Pattern:
     return re.compile(rf"Daily Trick #{n}(?!\d)")
 
@@ -211,6 +227,7 @@ def main() -> int:
 
     api = account = None
     if args.live:
+        load_local_env()
         need = ["META_PAGE_TOKEN", "FB_PAGE_ID" if args.platform == "facebook" else "IG_USER_ID"]
         missing = [k for k in need if not os.environ.get(k)]
         if missing:
