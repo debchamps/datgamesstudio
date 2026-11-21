@@ -45,7 +45,7 @@ below and check the current docs if a call is rejected.
    gh secret set IG_USER_ID --repo debchamps/datgamesstudio
    ```
    Optional variable if Meta retires the API version in `social_post.py`:
-   `gh variable set GRAPH_VERSION --body v25.0 --repo debchamps/datgamesstudio`.
+   `gh variable set GRAPH_VERSION --body v28.0 --repo debchamps/datgamesstudio`.
 
 ## First live test
 

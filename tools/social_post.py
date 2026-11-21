@@ -31,7 +31,7 @@ import social_content as c
 
 GRAPH = "https://graph.facebook.com"
 RUNWAY_DAYS = 3  # fail the job this many days before the published images run out
-DEFAULT_VERSION = "v24.0"  # Meta retires old versions; bump (or set GRAPH_VERSION) when it does
+DEFAULT_VERSION = "v27.0"  # Meta retires old versions; bump (or set GRAPH_VERSION) when it does
 
 
 class GraphError(Exception):
