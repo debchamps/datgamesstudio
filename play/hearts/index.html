@@ -29,10 +29,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/styles.css?v=5">
-    <link rel="stylesheet" href="/play/play.css?v=3">
+    <link rel="stylesheet" href="/assets/styles.css?v=6">
+    <link rel="stylesheet" href="/play/play.css?v=7">
     <link rel="stylesheet" href="/play/hearts/extra.css?v=3">
     <script defer src="/assets/main.js"></script>
+    <script defer src="/assets/daily-teaser.js?v=1"></script>
     <script type="module" src="/play/hearts/app.js"></script>
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Hearts","url":"https://www.datgamesstudio.com/play/hearts/","description":"Free 4-player Hearts card game against three computer players.","genre":"Card game","gamePlatform":["Web browser","Android","iOS"],"playMode":"SinglePlayer","applicationCategory":"Game","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"DAT Games Studio"}}</script>
   </head>
@@ -72,6 +73,7 @@
             <span class="score-pill" data-score></span>
           </div>
           <div class="game-bar-actions">
+            <a class="bar-btn bar-daily" href="/daily/hearts/" data-placement="game_bar" aria-label="Today's Hearts puzzle">🧩<span class="wide-only"> Daily puzzle</span></a>
             <button type="button" class="bar-btn" data-hint aria-label="Hint">💡<span class="wide-only"> Hint</span></button>
             <button type="button" class="bar-btn" data-new>New<span class="wide-only"> match</span></button>
           </div>
@@ -109,8 +111,12 @@
 
         <div class="hand" data-hand aria-label="Your hand"></div>
         <p class="legend"><span><b>Penalty cards:</b> every ♥ = 1 point, Q♠ = 13 points.</span> <span>Take all of them to shoot the moon.</span></p>
+        <div class="play-daily">
+          <a class="daily-teaser" href="/daily/hearts/" data-daily-teaser="hearts" data-placement="under_table"><span class="dtz-fan" aria-hidden="true"></span><span class="dtz-icon" aria-hidden="true">🧩</span><span class="dtz-text"><span class="dtz-eyebrow">The Daily Trick · today</span><span class="dtz-goal">Today's Hearts puzzle</span><span class="dtz-sub">All cards face up · one card wins <span class="dtz-stars"></span></span></span><span class="dtz-go">Play →</span></a>
+        </div>
 
         <aside class="side-promo" aria-label="Get the Hearts app">
+          <a class="daily-teaser" href="/daily/hearts/" data-daily-teaser="hearts" data-placement="side_panel"><span class="dtz-fan" aria-hidden="true"></span><span class="dtz-icon" aria-hidden="true">🧩</span><span class="dtz-text"><span class="dtz-eyebrow">The Daily Trick · today</span><span class="dtz-goal">Today's Hearts puzzle</span><span class="dtz-sub">All cards face up · one card wins <span class="dtz-stars"></span></span></span><span class="dtz-go">Play →</span></a>
           <img src="/assets/img/icons/hearts.png" alt="" width="72" height="72">
           <p class="sp-eyebrow">Free · Android &amp; iPhone</p>
           <h2>Get the full Hearts experience</h2>

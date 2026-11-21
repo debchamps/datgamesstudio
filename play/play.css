@@ -585,3 +585,14 @@
 @media (prefers-reduced-motion: reduce) {
   .side-promo a.store-btn::after, .promo-strip a.store-btn::after { animation: none; display: none; }
 }
+
+/* Daily Trick entry points */
+.bar-btn.bar-daily { white-space: nowrap; color: #2a1d00; background: linear-gradient(180deg, #ffd977, var(--gold)); border-color: transparent; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; }
+.bar-btn.bar-daily:hover { background: linear-gradient(180deg, #ffe08f, #f5c85c); }
+.play-daily { margin-top: 12px; }
+.side-promo .daily-teaser { margin: -4px 0 18px; padding: 12px; gap: 10px; }
+.side-promo .daily-teaser .dtz-icon { width: 38px; height: 38px; font-size: 20px; }
+.side-promo .daily-teaser .dtz-goal { font-size: 14.5px; }
+.side-promo .daily-teaser .dtz-sub, .side-promo .daily-teaser .dtz-fan { display: none; }
+.side-promo .daily-teaser .dtz-go { padding: 6px 10px; font-size: 12.5px; }
+@media (min-width: 1180px) { .play-daily { display: none; } }

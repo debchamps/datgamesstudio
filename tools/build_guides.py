@@ -403,8 +403,9 @@ def head(title: str, desc: str, path: str, ld: list[dict]) -> str:
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/styles.css?v=5">
+    <link rel="stylesheet" href="/assets/styles.css?v=6">
     <script defer src="/assets/main.js"></script>
+    <script defer src="/assets/daily-teaser.js?v=1"></script>
 {ld_json}
   </head>
   <body>
@@ -498,6 +499,29 @@ def play_button(g: dict, cls: str = "play-big") -> str:
     )
 
 
+DAILY = {"spades", "hearts", "callbreak", "twenty-nine", "bridge", "tarneeb", "bray"}
+
+
+def daily_teaser(g: dict, placement: str) -> str:
+    """Today's Daily Trick for this game; filled live by /assets/daily-teaser.js."""
+    if g["slug"] not in DAILY:
+        return ""
+    t = html.escape(short(g))
+    return (f'<a class="daily-teaser" href="/daily/{g["slug"]}/" data-daily-teaser="{g["slug"]}" data-placement="{placement}">'
+            '<span class="dtz-fan" aria-hidden="true"></span><span class="dtz-icon" aria-hidden="true">🧩</span>'
+            '<span class="dtz-text"><span class="dtz-eyebrow">The Daily Trick · today</span>'
+            f'<span class="dtz-goal">Today\'s {t} puzzle</span>'
+            '<span class="dtz-sub">All cards face up · one card wins <span class="dtz-stars"></span></span></span>'
+            '<span class="dtz-go">Play →</span></a>')
+
+
+def daily_hub_link(g: dict) -> str:
+    if g["slug"] not in DAILY:
+        return ""
+    return (f'\n            <a class="phc-rules phc-daily" href="/daily/{g["slug"]}/" data-daily-teaser="{g["slug"]}" '
+            'data-placement="play_hub_card">🧩 Today\'s puzzle: <b data-dtz-goal>Daily Trick</b> →</a>')
+
+
 def web_play(g: dict) -> str:
     if g["slug"] not in WEB_PLAY:
         return ""
@@ -571,6 +595,7 @@ def game_page(g: dict) -> str:
           </div>
           <p class="guide-lede">{html.escape(g['lede'])}</p>
           {play_button(g)}
+          {daily_teaser(g, "guide_hero")}
           <ul class="guide-facts">{facts}</ul>
         </div>
       </section>
@@ -585,6 +610,7 @@ def game_page(g: dict) -> str:
             <p>On this page</p>
             <ol>{toc}<li><a href="#tips">Tips</a></li><li><a href="#faq">FAQ</a></li></ol>
           </nav>
+          {daily_teaser(g, "guide_sidebar")}
           <div class="side-cta">
             <img src="/assets/img/icons/{g['icon']}.png" alt="" width="48" height="48" loading="lazy">
             <p><strong>Play {html.escape(s)} free</strong>Offline, against smart AI.</p>
@@ -675,7 +701,7 @@ def play_hub_page() -> str:
               <p>{html.escape(PLAY_TAG[g['slug']])}</p>
               <span class="phc-cta"><span aria-hidden="true">▶</span> Play now</span>
             </a>
-            <a class="phc-rules" href="/how-to-play/{g['slug']}/">How to play {html.escape(short(g))} <span aria-hidden="true">→</span></a>
+            <a class="phc-rules" href="/how-to-play/{g['slug']}/">How to play {html.escape(short(g))} <span aria-hidden="true">→</span></a>{daily_hub_link(g)}
           </article>"""
         for g in (by_slug[x] for x in PLAY_ORDER)
     )
