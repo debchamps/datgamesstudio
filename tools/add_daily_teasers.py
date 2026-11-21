@@ -29,9 +29,10 @@ def teaser(slug: str, placement: str, indent: str = "") -> str:
             f'<span class="dtz-go">Play →</span></a>')
 
 
-def link(slug: str, cls: str, placement: str) -> str:
-    return (f'<a class="{cls}" href="/daily/{slug}/" data-daily-teaser="{slug}" data-placement="{placement}">'
-            f'🧩 Today\'s puzzle: <b data-dtz-goal>Daily Trick</b> →</a>')
+def card_button(slug: str) -> str:
+    return (f'<a class="daily-link" href="/daily/{slug}/" data-daily-teaser="{slug}" data-placement="game_card">'
+            '<span class="dl-icon" aria-hidden="true">🧩</span><span class="dl-text"><small>Today\'s puzzle</small>'
+            '<b data-dtz-goal>Daily Trick</b></span><span class="dl-go" aria-hidden="true">→</span></a>')
 
 
 def add_script(s: str) -> str:
@@ -59,15 +60,16 @@ def play_page(slug: str) -> None:
 
 
 def home() -> None:
+    """A button under each game card's Play button, before the rules link."""
     p = ROOT / "index.html"
     s = p.read_text()
     for slug, gid in HOME_IDS.items():
         start = s.find(f'id="game-{gid}"')
         end = s.find("</article>", start)
         card = s[start:end]
-        if "data-daily-teaser" in card:
+        if "data-daily-teaser" in card or '<a class="rules-link"' not in card:
             continue
-        new = card.replace('<div class="store-row">', link(slug, "daily-link", "game_card") + '\n                <div class="store-row">', 1)
+        new = card.replace('<a class="rules-link"', card_button(slug) + '\n                <a class="rules-link"', 1)
         s = s[:start] + new + s[end:]
     p.write_text(add_script(s))
 
