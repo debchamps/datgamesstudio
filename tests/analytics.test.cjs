@@ -76,6 +76,43 @@ test('match lifecycle deduplicates results and resets engagement on replay', () 
   dom.window.close();
 });
 
+test('Daily Trick entry points report where they were clicked and which game they open', () => {
+  let { dom, document: d, events } = page();
+  d.querySelector('#game-twentynine .daily-link').click();
+  assert.equal(events.at(-1).name, 'daily_click');
+  assert.equal(events.at(-1).game, 'twenty-nine');
+  assert.equal(events.at(-1).placement, 'game_card');
+  d.querySelector('.hero-pill').click();
+  assert.equal(events.at(-1).name, 'daily_click');
+  assert.equal(events.at(-1).placement, 'hero_pill');
+  dom.window.close();
+  ({ dom, document: d, events } = page('play/spades/index.html', 'https://www.datgamesstudio.com/play/spades/'));
+  d.querySelector('.bar-daily').click();
+  assert.equal(events.at(-1).name, 'daily_click');
+  assert.equal(events.at(-1).game, 'spades');
+  assert.equal(events.at(-1).placement, 'game_bar');
+  assert.equal(events.at(-1).page_type, 'game');
+  dom.window.close();
+  ({ dom, document: d, events } = page('daily/index.html', 'https://www.datgamesstudio.com/daily/'));
+  d.querySelector('[data-tile="bridge"]').click();
+  assert.equal(events.at(-1).game, 'bridge');
+  assert.equal(events.at(-1).placement, 'hub_tile');
+  assert.equal(events.at(-1).page_type, 'daily_hub');
+  dom.window.close();
+  ({ dom, document: d, events } = page('daily/twenty-nine/5/index.html', 'https://www.datgamesstudio.com/daily/twenty-nine/5/'));
+  d.querySelector('.dt-crumbs a[href="/daily/"]').click();
+  assert.equal(events.at(-1).page_type, 'daily');
+  assert.equal(events.at(-1).game, 'twenty-nine');
+  dom.window.close();
+});
+
+test('puzzle events use the page slug as game, so they join the tracker events in reports', () => {
+  const src = fs.readFileSync(path.join(root, 'daily/daily.js'), 'utf8');
+  const calls = src.match(/track\("puzzle_[a-z]+",[^;]*\);/g) || [];
+  assert.ok(calls.length >= 8, 'expected the puzzle events');
+  for (const c of calls) assert.ok(/game: (this\.)?g\.slug|game: g\.slug/.test(c), c);
+});
+
 test('localhost and file previews do not emit events', () => {
   for (const url of ['http://localhost:8000/', 'http://127.0.0.1:8000/', 'file:///tmp/index.html']) {
     const { dom, window: w, events } = page('index.html', url);
@@ -94,7 +131,7 @@ test('every tagged page loads one shared tracker before its game module', () => 
       if (!file.endsWith('.html')) continue;
       const html = fs.readFileSync(file, 'utf8');
       if (!html.includes('G-677P55P83T')) continue;
-      assert.equal((html.match(/src="\/assets\/analytics.js\?v=2"/g) || []).length, 1, file);
+      assert.equal((html.match(/src="\/assets\/analytics.js\?v=3"/g) || []).length, 1, file);
       assert.ok(!html.includes('var DAT_APPS'), file);
       const module = html.indexOf('<script type="module"');
       if (module !== -1) assert.ok(html.indexOf('/assets/analytics.js') < module, file);

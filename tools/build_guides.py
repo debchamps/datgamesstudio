@@ -388,7 +388,7 @@ def head(title: str, desc: str, path: str, ld: list[dict]) -> str:
         gtag('config', 'G-677P55P83T');
       }}
     </script>
-    <script defer src="/assets/analytics.js?v=2"></script>
+    <script defer src="/assets/analytics.js?v=3"></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{html.escape(title)}</title>

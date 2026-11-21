@@ -100,7 +100,7 @@
       const id = url.searchParams.get("id") || url.pathname.match(/\/(id\d+)(?:\/|$)/)?.[1];
       return APPS[id] || "all_games";
     }
-    const target = url.pathname.match(/^\/(?:play|how-to-play)\/([^/]+)(?:\/|$)/);
+    const target = url.pathname.match(/^\/(?:play|how-to-play|daily)\/([^/]+)(?:\/|$)/);
     if (url.origin === location.origin && target) return normalize(target[1]);
     const card = element.closest(".game-card[id]");
     const anchorGame = url.hash.match(/^#game-(.+)$/);
@@ -139,6 +139,8 @@
     };
     if (["play.google.com", "apps.apple.com"].includes(url.hostname)) {
       window.datTrack("store_click", { ...params, store: url.hostname === "apps.apple.com" ? "app_store" : "google_play" });
+    } else if (url.origin === location.origin && /^\/daily\//.test(url.pathname)) {
+      window.datTrack("daily_click", params);
     } else if (url.origin === location.origin && /^\/play\//.test(url.pathname)) {
       window.datTrack("play_click", params);
     } else if (url.origin === location.origin && /^\/how-to-play\//.test(url.pathname)) {

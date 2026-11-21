@@ -51,6 +51,7 @@ target GA4 so they are not also routed to the Ads tag.
 | `play_click` | Internal link to a browser game or the play hub |
 | `guide_click` | Internal link to a rules guide or guide hub |
 | `store_click` | Google Play or App Store link, including catalog links |
+| `daily_click` | Internal link to The Daily Trick (`/daily/...`); Game is the destination, Placement is where it was clicked (`hero_pill`, `game_card`, `game_bar`, `under_table`, `side_panel`, `guide_hero`, `guide_sidebar`, `play_hub_card`, `hub_tile`, `other_puzzles`) |
 | `site_click` | Other HTTP(S) links and section anchors |
 | `site_control` | Mobile menu or catalog filter button |
 | `game_control` | New match, play again, next round, hint, reveal trump, or menu |
@@ -128,3 +129,28 @@ then check the detailed reports once GA4 has processed new traffic.
 
 `level_number` is not registered as a custom dimension yet; register it (event
 scope) before expecting it in standard reports.
+
+## The Daily Trick (`/daily/`)
+
+Emitted by `daily/daily.js`; Game is the page slug (`twenty-nine`), Page type is `daily` or `daily_hub`.
+
+| Event | Trigger | Useful fields |
+| --- | --- | --- |
+| `puzzle_view` | A puzzle page loaded | Result `new` / `solved_before`, `puzzle_number`, `stars`, `is_today` |
+| `puzzle_start` | First card played on a puzzle | `puzzle_number`, `is_today` |
+| `puzzle_fail` | A wrong line played out | Result `first_miss` / `repeat_miss`, `attempt` |
+| `puzzle_restart` | "Start over" tapped | |
+| `puzzle_hint` | "Show me the first card" used | |
+| `puzzle_solve` | Puzzle solved | Result `first_try` / `second_try` / `later_try` / `hinted`, `stars`, `attempts`, `first_solve` |
+| `puzzle_share` | Share used | Action `native` / `copy` / `whatsapp` |
+| `store_click` | Store button on a puzzle page | Placement `daily_result` (after solving) or `daily_side` (side panel) |
+| `play_click` | "Play a full match" link | Placement `daily_result` |
+
+Funnel: `puzzle_view` → `puzzle_start` → `puzzle_solve` → `store_click` with Placement
+`daily_result`. Events use the already-registered Game, Placement, Action, Result and Page
+type dimensions. To break down by the numeric fields too, register these event-scoped custom
+dimensions in GA4 (Admin → Custom definitions): `puzzle_number`, `stars`, `attempts`,
+`attempt`, `first_solve`, `is_today`.
+
+Share link visits arrive as sessions with `utm_source=whatsapp|share` and
+`utm_campaign=daily_trick`; Play Store installs carry `utm_campaign=daily_<game>`.

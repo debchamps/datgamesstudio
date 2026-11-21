@@ -16,6 +16,7 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const FAST = OG || new URLSearchParams(location.search).has("fast"); // tests and social images
 const sleep = (ms) => new Promise((r) => setTimeout(r, FAST ? 0 : ms));
 const track = (name, params = {}) => { try { window.datTrack?.(name, params); } catch (_) {} };
+const slugOf = (key) => (CFG.games[key] || {}).slug || key;
 
 // ---------- Days ----------
 function localDay(d = new Date()) {
@@ -184,7 +185,7 @@ class Puzzle {
       retry: $("[data-retry]"),
       hint: $("[data-hint-btn]"),
     };
-    this.els.retry.addEventListener("click", () => { track("puzzle_restart", { game: g.key }); this.reset(); });
+    this.els.retry.addEventListener("click", () => { track("puzzle_restart", { game: g.slug, puzzle_number: n }); this.reset(); });
     this.els.hint.addEventListener("click", () => this.showHint());
     this.renderGoal();
     this.reset();
@@ -341,7 +342,7 @@ class Puzzle {
     if (this.busy || !this.node || this.done) return;
     const move = this.node.m[card];
     if (!move) return;
-    if (!this.started) { this.started = true; track("puzzle_start", { game: this.g.key, puzzle_number: this.n }); }
+    if (!this.started) { this.started = true; track("puzzle_start", { game: this.g.slug, puzzle_number: this.n, is_today: this.n === TODAY_NUMBER ? 1 : 0 }); }
     this.busy = true;
     this.hintCard = null;
     for (const ev of move.ev) {
@@ -383,7 +384,7 @@ class Puzzle {
 
   showHint() {
     this.helped = true;
-    track("puzzle_hint", { game: this.g.key });
+    track("puzzle_hint", { game: this.g.slug, puzzle_number: this.n });
     this.reset();
     this.hintCard = this.p.key;
     this.render();
@@ -391,7 +392,7 @@ class Puzzle {
 
   failed() {
     this.fails++;
-    track("puzzle_fail", { game: this.g.key, attempt: this.fails });
+    track("puzzle_fail", { game: this.g.slug, puzzle_number: this.n, attempt: this.fails, result: this.fails === 1 ? "first_miss" : "repeat_miss" });
     this.node = null;
     this.render();
     this.status("Not this time");
@@ -416,7 +417,8 @@ class Puzzle {
     const starsWon = this.helped ? 1 : attempts === 1 ? 3 : attempts === 2 ? 2 : 1;
     const first = recordSolve(this.g.key, this.n, starsWon, attempts);
     const streak = liveStreak();
-    track("puzzle_solve", { game: this.g.key, stars: starsWon, attempts, helped: this.helped ? 1 : 0, first_solve: first ? 1 : 0 });
+    track("puzzle_solve", { game: this.g.slug, puzzle_number: this.n, stars: starsWon, attempts, helped: this.helped ? 1 : 0, first_solve: first ? 1 : 0,
+      result: this.helped ? "hinted" : attempts === 1 ? "first_try" : attempts === 2 ? "second_try" : "later_try" });
     this.result = { stars: starsWon, attempts };
     this.showSolved(streak);
   }
@@ -436,13 +438,13 @@ class Puzzle {
     const text = this.shareText();
     const url = this.shareUrl("share");
     if (navigator.share) {
-      try { await navigator.share({ text, url }); track("puzzle_share", { game: this.g.key, method: "native" }); } catch (_) {}
+      try { await navigator.share({ text, url }); track("puzzle_share", { game: this.g.slug, puzzle_number: this.n, action: "native" }); } catch (_) {}
       return;
     }
     try {
       await navigator.clipboard.writeText(`${text}\n${url}`);
       toast("Copied. Paste it anywhere!");
-      track("puzzle_share", { game: this.g.key, method: "copy" });
+      track("puzzle_share", { game: this.g.slug, puzzle_number: this.n, action: "copy" });
     } catch (_) { toast("Couldn't copy"); }
   }
 
@@ -465,7 +467,7 @@ class Puzzle {
       <p>${r.attempts === 1 ? "First try. Brilliant." : `Solved in ${r.attempts} tries.`}${this.helped ? " (with a hint)" : ""}</p>
       ${streak > 1 ? `<div class="dt-streak">🔥 ${streak}-day streak</div>` : ""}
       <div class="dt-lesson"><div data-keycard></div><p>${lesson}</p></div>
-      <div class="dt-actions">
+      <div class="dt-actions" data-placement="daily_result">
         <button type="button" class="dt-btn primary" data-share>Share result</button>
         <a class="dt-btn wa" href="${wa}" target="_blank" rel="noopener" data-wa>WhatsApp</a>
         ${next ? `<a class="dt-btn wide" href="/daily/${next.slug}/">Next: today's ${next.title} puzzle →</a>` : `<a class="dt-btn wide" href="/daily/">All of today's puzzles</a>`}
@@ -474,11 +476,11 @@ class Puzzle {
         <div class="dt-app"><img src="${g.icon}" alt="" width="44" height="44"><div><h3>${pitch.title}</h3><p>${pitch.text}</p></div></div>
         ${ctaBody}
       </div>
-      ${g.play && !pitch.web ? `<p class="dt-next"><a href="${g.play}">Or play a full match in your browser</a></p>` : ""}
+      ${g.play && !pitch.web ? `<p class="dt-next" data-placement="daily_result"><a href="${g.play}">Or play a full match in your browser</a></p>` : ""}
       <p class="dt-next">Next Daily Trick in <b data-countdown>${untilMidnight()}</b></p>`);
     $("[data-keycard]", this.overlay).replaceWith(cardEl(p.key));
     $("[data-share]", this.overlay).addEventListener("click", () => this.share());
-    $("[data-wa]", this.overlay).addEventListener("click", () => track("puzzle_share", { game: g.key, method: "whatsapp" }));
+    $("[data-wa]", this.overlay).addEventListener("click", () => track("puzzle_share", { game: g.slug, puzzle_number: this.n, action: "whatsapp" }));
   }
 
   dialog(html) {
@@ -522,6 +524,7 @@ async function puzzlePage() {
   }
   renderSide(g, n);
   const data = await fetch(`/daily/data/${g.data}/${fileFor(n)}.json`).then((r) => r.json());
+  if (!OG) track("puzzle_view", { game: g.slug, puzzle_number: n, stars: data.stars, is_today: n === TODAY_NUMBER ? 1 : 0, result: solvedRecord(game, n) ? "solved_before" : "new" });
   $("[data-stars-pill]").innerHTML = stars(data.stars);
   $("[data-og-goal]").textContent = data.goal;
   $("[data-variant-pill]").textContent = data.variant ? data.variant[0].toUpperCase() + data.variant.slice(1) : "";

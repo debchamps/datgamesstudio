@@ -121,7 +121,7 @@ def head(title: str, description: str, url: str, image: str, wide_image: bool) -
         gtag('config', 'G-677P55P83T');
       }}
     </script>
-    <script defer src="/assets/analytics.js?v=2"></script>
+    <script defer src="/assets/analytics.js?v=3"></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>{esc(title)}</title>
@@ -243,7 +243,7 @@ def puzzle_page(g: dict, number: int | None, epoch: int, count: int, meta: dict 
               <div class="dt-card" data-side-app data-placement="daily_side"></div>
               <div class="dt-card">
                 <h3>Today's other puzzles</h3>
-                <ul class="dt-others" data-others></ul>
+                <ul class="dt-others" data-others data-placement="other_puzzles"></ul>
                 <a class="dt-more" href="/daily/">All of today's puzzles →</a>
               </div>
             </aside>
@@ -293,7 +293,7 @@ def hub_page(epoch: int, count: int) -> str:
             <span class="dt-pill">New puzzles in <b data-countdown style="margin-left:4px;font-variant-numeric:tabular-nums"></b></span>
           </div>
         </section>
-        <div class="dt-grid" data-hub>
+        <div class="dt-grid" data-hub data-placement="hub_tile">
 {tiles}
         </div>
         <section class="dt-how" aria-label="How it works">
