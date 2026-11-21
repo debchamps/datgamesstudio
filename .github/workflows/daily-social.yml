@@ -1,0 +1,69 @@
+# Posts The Daily Trick to the DAT Games Facebook Page and Instagram account.
+# Safe by default: it only really posts when the repository variable SOCIAL_POSTING_ENABLED is
+# "true"; otherwise it does a dry run that prints what it would post. Setup: docs/social-automation.md
+name: Daily social posts
+
+on:
+  schedule:
+    - cron: "30 13 * * *"   # Instagram (Spades, Hearts, Bridge): 8:30 am New York
+    - cron: "30 14 * * *"   # Facebook: Callbreak, 29, Bray: 8 pm India
+    - cron: "0 17 * * *"    # Facebook: Tarneeb: 8 pm Beirut
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform"
+        type: choice
+        options: [facebook, instagram]
+        required: true
+      date:
+        description: "UTC date YYYY-MM-DD (empty = today)"
+        required: false
+      live:
+        description: "Really post (otherwise a dry run)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-social-${{ github.event.schedule || inputs.platform }}
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Post
+        env:
+          META_PAGE_TOKEN: ${{ secrets.META_PAGE_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          GRAPH_VERSION: ${{ vars.GRAPH_VERSION }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_PLATFORM: ${{ inputs.platform }}
+          INPUT_DATE: ${{ inputs.date }}
+          INPUT_LIVE: ${{ inputs.live }}
+          ENABLED: ${{ vars.SOCIAL_POSTING_ENABLED }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -n "${SCHEDULE:-}" ]; then
+            case "$SCHEDULE" in
+              "30 13 * * *") platform=instagram; slot="13:30" ;;
+              "30 14 * * *") platform=facebook;  slot="14:30" ;;
+              "0 17 * * *")  platform=facebook;  slot="17:00" ;;
+              *) echo "Unknown schedule $SCHEDULE"; exit 1 ;;
+            esac
+            args+=(--slot "$slot")
+            [ "${ENABLED:-}" = "true" ] && args+=(--live)
+          else
+            platform="$INPUT_PLATFORM"
+            [ -n "${INPUT_DATE:-}" ] && args+=(--date "$INPUT_DATE")
+            [ "$INPUT_LIVE" = "true" ] && args+=(--live)
+          fi
+          cd tools
+          python3 social_post.py "$platform" "${args[@]}"
