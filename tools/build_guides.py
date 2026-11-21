@@ -388,7 +388,7 @@ def head(title: str, desc: str, path: str, ld: list[dict]) -> str:
         gtag('config', 'G-677P55P83T');
       }}
     </script>
-    <script defer src="/assets/analytics.js?v=1"></script>
+    <script defer src="/assets/analytics.js?v=2"></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{html.escape(title)}</title>
@@ -403,7 +403,7 @@ def head(title: str, desc: str, path: str, ld: list[dict]) -> str:
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/styles.css?v=3">
+    <link rel="stylesheet" href="/assets/styles.css?v=5">
     <script defer src="/assets/main.js"></script>
 {ld_json}
   </head>
@@ -426,6 +426,7 @@ def head(title: str, desc: str, path: str, ld: list[dict]) -> str:
       </button>
       <nav class="site-nav" id="site-nav" data-site-nav>
         <a href="/#games">Games</a>
+        <a href="/daily/">Daily puzzle</a>
         <a href="/play/">Play online</a>
         <a href="/how-to-play/">How to play</a>
         <a href="/#studio">Studio</a>
@@ -442,6 +443,7 @@ FOOT = """    <footer class="site-footer">
         <span>Free card games &amp; puzzles for Android and iPhone.</span>
       </div>
       <nav aria-label="Footer">
+        <a href="/daily/">Daily puzzle</a>
         <a href="/play/">Play online</a>
         <a href="/how-to-play/">How to play</a>
         <a href="/privacy-policy/">Privacy Policy</a>

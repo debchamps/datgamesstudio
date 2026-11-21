@@ -6,7 +6,14 @@
     <title>Page Not Found | DAT Games Studio</title>
     <meta name="robots" content="noindex">
     <link rel="icon" type="image/png" href="/assets/img/icons/favicon.png">
-    <link rel="stylesheet" href="/assets/styles.css?v=3">
+    <link rel="stylesheet" href="/assets/styles.css?v=5">
+    <script>
+      // Daily Trick permalinks that haven't been generated yet open the game's daily page.
+      (function () {
+        var m = location.pathname.match(/^\/daily\/([a-z-]+)\/(\d+)\/?$/);
+        if (m) location.replace("/daily/" + m[1] + "/?n=" + m[2] + location.search.replace(/^\?/, "&"));
+      })();
+    </script>
   </head>
   <body>
     <main class="policy-page">

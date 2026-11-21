@@ -16,9 +16,10 @@
   const aliases = { twentynine: "twenty-nine", cardadda: "card-adda", snakeuncoil: "snake-uncoil" };
   const normalize = (game) => aliases[game] || game;
   const path = location.pathname;
-  const match = path.match(/^\/(play|how-to-play)\/([^/]+)(?:\/|$)/);
+  const match = path.match(/^\/(play|how-to-play|daily)\/([^/]+)(?:\/|$)/);
   const pageGame = match ? normalize(match[2]) : "";
-  const pageType = path === "/" ? "home" : /^\/play\//.test(path)
+  const pageType = path === "/" ? "home" : /^\/daily\//.test(path)
+    ? (pageGame ? "daily" : "daily_hub") : /^\/play\//.test(path)
     ? (pageGame ? "game" : "play_hub") : /^\/how-to-play\//.test(path)
     ? (pageGame ? "guide" : "guide_hub") : "other";
   window.DAT_GAME = pageType === "game" ? pageGame : "";

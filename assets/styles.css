@@ -121,6 +121,17 @@ h1, h2, h3 { font-family: var(--display); font-weight: 800; }
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (min-width: 761px) and (max-width: 1180px) {
+  .site-nav { gap: 0; }
+  .site-nav a { padding: 10px 9px; font-size: 13.5px; }
+  .brand small { display: none; }
+}
+@media (min-width: 761px) and (max-width: 960px) {
+  /* Both stay in the footer. */
+  .site-nav a[href="/privacy-policy/"], .site-nav a[href="/#studio"] { display: none; }
 }
 
 .site-nav a:hover,

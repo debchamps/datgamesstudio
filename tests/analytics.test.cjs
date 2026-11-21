@@ -94,7 +94,7 @@ test('every tagged page loads one shared tracker before its game module', () => 
       if (!file.endsWith('.html')) continue;
       const html = fs.readFileSync(file, 'utf8');
       if (!html.includes('G-677P55P83T')) continue;
-      assert.equal((html.match(/src="\/assets\/analytics.js\?v=1"/g) || []).length, 1, file);
+      assert.equal((html.match(/src="\/assets\/analytics.js\?v=2"/g) || []).length, 1, file);
       assert.ok(!html.includes('var DAT_APPS'), file);
       const module = html.indexOf('<script type="module"');
       if (module !== -1) assert.ok(html.indexOf('/assets/analytics.js') < module, file);
