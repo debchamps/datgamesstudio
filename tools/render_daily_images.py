@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-SIZES = {"wide": (1200, 630), "feed": (1080, 1350)}
+SIZES = {"wide": (1200, 630), "feed": (1080, 1350), "story": (1080, 1920)}
 
 
 def serve() -> tuple[http.server.ThreadingHTTPServer, int]:
