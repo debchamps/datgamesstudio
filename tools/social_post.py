@@ -11,8 +11,9 @@ Safe by default: without --live nothing is sent to Meta. Each run first looks fo
 post for the day's puzzle, so re-running a failed job never posts twice. Images must already be
 public on the site (make_social_week.py --publish, then push). Setup: docs/social-automation.md.
 
-Environment (live runs only): META_PAGE_TOKEN, FB_PAGE_ID (facebook), IG_USER_ID (instagram);
-optional GRAPH_VERSION. Tokens are never printed.
+Environment (live runs only): META_PAGE_TOKEN, FB_PAGE_ID (facebook). Instagram defaults to
+facebook_login (META_PAGE_TOKEN, IG_USER_ID); IG_AUTH_MODE=instagram_login instead uses
+IG_ACCESS_TOKEN, IG_USER_ID, IG_TOKEN_EXPIRES. Optional GRAPH_VERSION. Tokens are never printed.
 """
 from __future__ import annotations
 
@@ -30,6 +31,7 @@ import urllib.request
 import social_content as c
 
 GRAPH = "https://graph.facebook.com"
+IG_GRAPH = "https://graph.instagram.com"
 RUNWAY_DAYS = 3  # fail the job this many days before the published images run out
 DEFAULT_VERSION = "v27.0"  # Meta retires old versions; bump (or set GRAPH_VERSION) when it does
 
@@ -41,9 +43,11 @@ class GraphError(Exception):
 class Graph:
     """A minimal Graph API client. The token only ever goes in the request body or query."""
 
-    def __init__(self, token: str, version: str = DEFAULT_VERSION):
+    def __init__(self, token: str, version: str = DEFAULT_VERSION, host: str = GRAPH):
+        if host not in (GRAPH, IG_GRAPH):
+            raise ValueError("Unsupported Graph API host")
         self.token = token
-        self.base = f"{GRAPH}/{version}"
+        self.base = f"{host}/{version}"
 
     def call(self, method: str, path: str, **params) -> dict:
         params["access_token"] = self.token
@@ -54,18 +58,28 @@ class Graph:
             req = urllib.request.Request(f"{self.base}/{path}", data=data.encode(), method=method)
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
-                return json.loads(resp.read().decode() or "{}")
+                result = json.loads(resp.read().decode() or "{}")
+                if not isinstance(result, dict):
+                    raise ValueError
+                return result
         except urllib.error.HTTPError as e:
             body = {}
             try:
                 body = json.loads(e.read().decode())
             except Exception:
                 pass
-            err = body.get("error", {})
-            hint = " (the token is invalid or expired: make a new long-lived Page token)" if err.get("code") == 190 else ""
-            raise GraphError(f"{method} {path}: HTTP {e.code}, {err.get('message', 'no detail')}{hint}") from None
-        except urllib.error.URLError as e:
-            raise GraphError(f"{method} {path}: network error {e.reason}") from None
+            finally:
+                e.close()
+            err = body.get("error", {}) if isinstance(body, dict) else {}
+            code = err.get("code") if isinstance(err, dict) else None
+            hint = " (the token is invalid or expired: see token setup in docs/social-automation.md)" if code == 190 else ""
+            # Upstream messages and network exception reasons can echo credential-bearing URLs.
+            detail = f", Meta error {code}" if isinstance(code, int) else ""
+            raise GraphError(f"{method} {path}: HTTP {e.code}{detail}{hint}") from None
+        except (urllib.error.URLError, OSError):
+            raise GraphError(f"{method} {path}: network error (request details withheld)") from None
+        except (ValueError, UnicodeError):
+            raise GraphError(f"{method} {path}: invalid API response (details withheld)") from None
 
 
 LOCAL_ENV = os.path.expanduser("~/.config/datgames-social/meta.env")
@@ -75,13 +89,32 @@ def load_local_env(path: str = LOCAL_ENV) -> None:
     """For runs on your own machine: fill missing secrets from the private file written by
     meta_token_setup.py (outside every repo). On GitHub the secrets come from the environment."""
     try:
-        lines = open(path).read().splitlines()
+        with open(path) as stream:
+            lines = stream.read().splitlines()
     except OSError:
         return
     for line in lines:
         key, sep, value = line.partition("=")
         if sep and not key.startswith("#") and key.strip() and not os.environ.get(key.strip()):
             os.environ[key.strip()] = value.strip()
+
+
+def instagram_expiry_error(value: str, today: dt.date | None = None) -> str | None:
+    """Fail before any live calls, including yesterday's answer, during the renewal window."""
+    try:
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+            raise ValueError
+        expiry = dt.date.fromisoformat(value)
+    except ValueError:
+        return "IG_TOKEN_EXPIRES must be a UTC date (YYYY-MM-DD). Run tools/instagram_token_setup.py."
+    today = today or dt.datetime.now(dt.timezone.utc).date()
+    remaining = (expiry - today).days
+    if remaining <= 0:
+        return "Instagram token is expired. Generate a new dashboard token and run tools/instagram_token_setup.py."
+    if remaining < 14:
+        return (f"Instagram token has {remaining} days left; live calls stopped. "
+                "Run tools/instagram_token_refresh.py before expiry.")
+    return None
 
 
 def marker_re(n: int) -> re.Pattern:
@@ -228,12 +261,26 @@ def main() -> int:
     api = account = None
     if args.live:
         load_local_env()
-        need = ["META_PAGE_TOKEN", "FB_PAGE_ID" if args.platform == "facebook" else "IG_USER_ID"]
+        instagram_login = False
+        if args.platform == "instagram":
+            mode = os.environ.get("IG_AUTH_MODE") or "facebook_login"
+            if mode not in ("instagram_login", "facebook_login"):
+                print("✗ IG_AUTH_MODE must be instagram_login or facebook_login.")
+                return 1
+            instagram_login = mode == "instagram_login"
+        token_key = "IG_ACCESS_TOKEN" if instagram_login else "META_PAGE_TOKEN"
+        need = [token_key, "FB_PAGE_ID" if args.platform == "facebook" else "IG_USER_ID"]
         missing = [k for k in need if not os.environ.get(k)]
         if missing:
             print(f"✗ missing secrets: {', '.join(missing)}. See docs/social-automation.md.")
             return 1
-        api = Graph(os.environ["META_PAGE_TOKEN"], os.environ.get("GRAPH_VERSION", DEFAULT_VERSION))
+        if instagram_login:
+            error = instagram_expiry_error(os.environ.get("IG_TOKEN_EXPIRES", ""))
+            if error:
+                print(f"✗ {error}")
+                return 1
+        api = Graph(os.environ[token_key], os.environ.get("GRAPH_VERSION") or DEFAULT_VERSION,
+                    host=IG_GRAPH if instagram_login else GRAPH)
         account = os.environ["FB_PAGE_ID" if args.platform == "facebook" else "IG_USER_ID"]
     print(f"{'LIVE' if args.live else 'DRY RUN'} · {args.platform} · {day} · Daily Trick #{n} · {game['title']}")
     lines: list[str] = []

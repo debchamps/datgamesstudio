@@ -1,5 +1,6 @@
 """Tests for social_post.py against a fake Graph API. Run: python3 -m unittest tools/test_social_post.py"""
 import io
+import datetime as dt
 import os
 import sys
 import unittest
@@ -16,8 +17,9 @@ N = 7  # Mon 23 Nov 2026: Callbreak on Facebook, Spades on Instagram
 class FakeGraph:
     """Records calls; `posts` / `comments` seed what the account already has."""
 
-    def __init__(self, posts=None, comments=None, fail_on=None):
+    def __init__(self, posts=None, comments=None, fail_on=None, *, token=None, version=None, host=None):
         self.calls, self.posts, self.comments, self.fail_on = [], posts or [], comments or {}, fail_on
+        self.token, self.base = token, f"{host}/{version}"
         self.status = ["IN_PROGRESS", "FINISHED"]
 
     def call(self, method, path, **params):
@@ -167,7 +169,8 @@ class SocialPostTests(unittest.TestCase):
         path = os.path.join(tempfile.mkdtemp(), "sub", "meta.env")
         mts.write_env({"META_PAGE_TOKEN": "t", "FB_PAGE_ID": "1"}, path)
         self.assertEqual(st.S_IMODE(os.stat(path).st_mode), 0o600)
-        self.assertIn("META_PAGE_TOKEN=t", open(path).read())
+        with open(path) as stream:
+            self.assertIn("META_PAGE_TOKEN=t", stream.read())
 
     def test_slot_gating_and_missing_secrets(self):
         with mock.patch.object(sys, "argv", ["x", "facebook", "--date", "2026-11-24", "--slot", "17:00"]):
@@ -181,6 +184,135 @@ class SocialPostTests(unittest.TestCase):
             with redirect_stdout(buf):
                 self.assertEqual(sp.main(), 1)
             self.assertIn("missing secrets", buf.getvalue())
+
+
+class InstagramLoginTests(unittest.TestCase):
+    def invoke(self, env=None, platform="instagram", live=True, api=None):
+        api = api or FakeGraph()
+        args = ["social_post.py", platform, "--date", "2026-11-23"] + (["--live"] if live else [])
+        buf = io.StringIO()
+        with mock.patch.dict(os.environ, env or {}, clear=True), mock.patch.object(sp, "load_local_env"), \
+                mock.patch.object(sys, "argv", args), mock.patch.object(sp, "Graph", return_value=api) as factory, \
+                mock.patch.object(sp, "image_is_public", return_value=True), mock.patch.object(sp.time, "sleep"), \
+                redirect_stdout(buf):
+            code = sp.main()
+        return code, buf.getvalue(), factory, api
+
+    def settings(self, days=30):
+        expiry = dt.datetime.now(dt.timezone.utc).date() + dt.timedelta(days=days)
+        return {"IG_AUTH_MODE": "instagram_login", "IG_ACCESS_TOKEN": "fixture-instagram",
+                "IG_USER_ID": "123", "IG_TOKEN_EXPIRES": expiry.isoformat()}
+
+    def test_instagram_login_uses_own_host_token_and_full_flow(self):
+        env = self.settings()
+        env["GRAPH_VERSION"] = ""  # GitHub passes an unset variable as an empty string
+        code, output, factory, api = self.invoke(env)
+        self.assertEqual(code, 0)
+        factory.assert_called_once_with("fixture-instagram", "v27.0", host=sp.IG_GRAPH)
+        self.assertEqual(len(api.posted("123/media")), 1)
+        self.assertEqual(api.posted("123/media_publish")[0][2], {"creation_id": "container1"})
+        self.assertNotIn("fixture-instagram", output)
+
+    def test_instagram_login_does_not_duplicate_post_or_answer(self):
+        api = FakeGraph(posts=[{"id": "T", "caption": "Daily Trick #7"},
+                               {"id": "Y", "caption": "Daily Trick #6"}],
+                        comments={"Y": [{"text": "Answer to Daily Trick #6: already done"}]})
+        code, output, _, api = self.invoke(self.settings(), api=api)
+        self.assertEqual(code, 0)
+        self.assertEqual(api.posted("/media"), [])
+        self.assertEqual(api.posted("/media_publish"), [])
+        self.assertEqual(api.posted("/comments"), [])
+        self.assertIn("already on Instagram", output)
+        self.assertIn("already has its answer", output)
+
+    def test_instagram_login_answers_yesterday(self):
+        api = FakeGraph(posts=[{"id": "Y", "caption": "Daily Trick #6"}])
+        code, _, _, api = self.invoke(self.settings(), api=api)
+        self.assertEqual(code, 0)
+        self.assertIn("Answer to Daily Trick #6", api.posted("Y/comments")[0][2]["message"])
+
+    def test_expiry_guard_stops_all_calls_even_for_a_historical_post(self):
+        # --date selects the puzzle, never the token validity date.
+        for days in (7, 0, -1):
+            with self.subTest(days=days):
+                code, output, factory, api = self.invoke(self.settings(days))
+                self.assertEqual(code, 1)
+                factory.assert_not_called()
+                self.assertEqual(api.calls, [])
+                self.assertIn("expired" if days <= 0 else "7 days", output)
+
+    def test_missing_or_invalid_expiry_blocks_live(self):
+        for value in ("", "tomorrow", "2026-02-30", "20261130"):
+            env = self.settings()
+            env["IG_TOKEN_EXPIRES"] = value
+            code, output, factory, _ = self.invoke(env)
+            self.assertEqual(code, 1)
+            factory.assert_not_called()
+            self.assertIn("IG_TOKEN_EXPIRES", output)
+
+    def test_fourteen_days_remaining_is_allowed(self):
+        self.assertEqual(self.invoke(self.settings(14))[0], 0)
+
+    def test_missing_secrets_are_specific_to_instagram_login(self):
+        code, output, factory, _ = self.invoke({"IG_AUTH_MODE": "instagram_login"})
+        self.assertEqual(code, 1)
+        factory.assert_not_called()
+        self.assertIn("IG_ACCESS_TOKEN, IG_USER_ID", output)
+        self.assertNotIn("META_PAGE_TOKEN", output)
+
+    def test_dry_run_needs_no_credentials_or_expiry_and_sends_nothing(self):
+        code, output, factory, api = self.invoke({"IG_AUTH_MODE": "instagram_login"}, live=False)
+        self.assertEqual(code, 0)
+        factory.assert_not_called()
+        self.assertEqual(api.calls, [])
+        self.assertIn("DRY RUN", output)
+        self.assertIn("Spades", output)
+        self.assertIn(c.image_url("instagram", N), output)
+
+    def test_facebook_ignores_instagram_auth_mode_and_expiry(self):
+        env = {"IG_AUTH_MODE": "instagram_login", "IG_TOKEN_EXPIRES": "expired",
+               "META_PAGE_TOKEN": "fixture-page", "FB_PAGE_ID": "456"}
+        code, _, factory, api = self.invoke(env, platform="facebook")
+        self.assertEqual(code, 0)
+        factory.assert_called_once_with("fixture-page", "v27.0", host=sp.GRAPH)
+        self.assertEqual(len(api.posted("456/photos")), 1)
+
+    def test_default_instagram_mode_remains_facebook_login(self):
+        env = {"META_PAGE_TOKEN": "fixture-page", "IG_USER_ID": "456", "IG_AUTH_MODE": ""}
+        code, _, factory, _ = self.invoke(env)
+        self.assertEqual(code, 0)
+        factory.assert_called_once_with("fixture-page", "v27.0", host=sp.GRAPH)
+
+    def test_invalid_auth_mode_is_rejected_without_echoing_it(self):
+        code, output, factory, _ = self.invoke({"IG_AUTH_MODE": "fixture-invalid-value"})
+        self.assertEqual(code, 1)
+        factory.assert_not_called()
+        self.assertNotIn("fixture-invalid-value", output)
+
+    def test_instagram_graph_requests_use_instagram_host(self):
+        response = mock.MagicMock()
+        response.__enter__.return_value.read.return_value = b'{"data": []}'
+        graph = sp.Graph("fixture-instagram", host=sp.IG_GRAPH)
+        with mock.patch.object(sp.urllib.request, "urlopen", return_value=response) as request:
+            graph.call("GET", "123/media", fields="id,caption")
+        url = sp.urllib.parse.urlparse(request.call_args.args[0].full_url)
+        self.assertEqual(url.netloc, "graph.instagram.com")
+        self.assertEqual(url.path, "/v27.0/123/media")
+        self.assertEqual(sp.urllib.parse.parse_qs(url.query)["access_token"], ["fixture-instagram"])
+
+    def test_http_and_network_errors_never_echo_credentials_or_urls(self):
+        token = "fixture-credential+/="
+        encoded = sp.urllib.parse.quote_plus(token)
+        errors = [sp.urllib.error.HTTPError("url", 400, "bad", {}, io.BytesIO(
+            ('{"error":{"message":"' + token + ' ' + encoded + '","code":190}}').encode())),
+            sp.urllib.error.URLError("https://graph.instagram.com/me?access_token=" + encoded),
+            TimeoutError(token)]
+        for error in errors:
+            with mock.patch.object(sp.urllib.request, "urlopen", side_effect=error):
+                with self.assertRaises(sp.GraphError) as caught:
+                    sp.Graph(token, host=sp.IG_GRAPH).call("GET", "123/media")
+            self.assertNotIn(token, str(caught.exception))
+            self.assertNotIn(encoded, str(caught.exception))
 
 
 if __name__ == "__main__":

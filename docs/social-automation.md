@@ -14,11 +14,114 @@ the games per lane are in `tools/social_content.py`.
 run is a dry run that prints what it would post. A run first looks for an existing post for
 the day's puzzle number, so re-running a failed job never posts twice.
 
-**Status:** written and tested against a fake Meta API only (`tools/test_social_post.py`).
-It has not yet posted for real. Meta changes its API and permission rules, so do the live test
-below and check the current docs if a call is rejected.
+**Status (2026-11-21):** Facebook is live. Instagram Login (Option B, no linked Facebook Page)
+is implemented and tested against a fake API; the account setup and first live Instagram test
+remain for the human. No live Instagram post was sent during implementation.
 
-## One-time setup
+## Instagram setup — Option B (no Facebook Page link)
+
+Meta's current requirements and links are recorded in [the API findings](instagram-api-findings.md).
+The human does the logins, accepts invites and enters tokens. Never paste a token into chat,
+the public repo, a command argument or a workflow input.
+
+1. Open [DAT Games Social in the Meta dashboard](https://developers.facebook.com/apps/1653465589615252/).
+   Add the **Instagram** product / Instagram management use case, then select **API setup with
+   Instagram login**. Labels can vary. The app must be a Business app; if the existing app
+   cannot add this product, create a separate Business app for Instagram and leave the Facebook
+   app alone. Standard Access is sufficient for an owned/managed account added to the app;
+   keep Development mode for this setup. Other people's accounts require Advanced Access.
+2. Confirm `@datgamesstudio` is a public Professional account (Business or Creator). Add it
+   as an Instagram tester/account under **App Roles → Roles** or the Instagram API setup.
+   Accept the tester invitation while logged into that account (Instagram → Settings → Apps
+   and websites → Tester invites; use Instagram's web settings if the phone app omits it).
+3. Grant **`instagram_business_basic`**, **`instagram_business_content_publish`**, and
+   **`instagram_business_manage_comments`**. Messaging permissions are unnecessary.
+4. In **Instagram → API setup with Instagram login**, click **Generate token** beside the
+   account and log in. Meta documents this dashboard token as long-lived (60 days).
+5. In your own terminal, run:
+   ```bash
+   cd /Users/debarghy/Desktop/GamesV2/datgamesstudio
+   python3 tools/instagram_token_setup.py
+   ```
+   Paste the token only into the hidden prompt. Enter the UTC date the dashboard generated it
+   (default today). The helper reads `/me`, verifies `@datgamesstudio` is professional and saves
+   the returned professional **`user_id`** as `IG_USER_ID`. It merges the private file
+   `~/.config/datgames-social/meta.env` atomically with mode **600**, preserving Facebook settings.
+   It saves `IG_ACCESS_TOKEN`, `IG_USER_ID`, `IG_AUTH_MODE=instagram_login`, `IG_TOKEN_EXPIRES`
+   and a local `IG_TOKEN_ISSUED_AT` timestamp. The date guard uses midnight UTC conservatively.
+6. Answer **y** to the optional GitHub sync after first checking `gh auth status`. This sets
+   **secrets** `IG_ACCESS_TOKEN`, `IG_USER_ID` through stdin, and **repository variables**
+   `IG_AUTH_MODE=instagram_login`, `IG_TOKEN_EXPIRES`. It does not change Facebook secrets,
+   the schedule, or `SOCIAL_POSTING_ENABLED`. A failed sync can be retried without regenerating
+   the token:
+   ```bash
+   python3 tools/instagram_token_refresh.py --sync-only
+   ```
+
+For a short-lived token obtained through a custom OAuth login instead of the dashboard, use
+`python3 tools/instagram_token_setup.py --short-lived`. It also prompts, hidden, for the
+**Instagram App Secret** and exchanges the token server-side. The secret is never saved.
+No OAuth callback server is needed for the dashboard route.
+
+### Instagram test and activation (human only)
+
+After reviewing the local changes and pushing them yourself:
+
+1. Run `IG_AUTH_MODE=instagram_login python3 tools/social_post.py instagram --date 2026-11-23`.
+   It must print Spades **Daily Trick #7**, the caption and public image URL. This is a dry run;
+   no credentials are loaded and no Meta requests are sent (only public image HEAD checks).
+2. Actions → **Daily social posts** → Run workflow → platform `instagram`, leave **live** unticked.
+   Check the caption, image URL and absence of warnings.
+3. Run it again for today's puzzle with **live** ticked. Confirm the feed image and caption;
+   the next day, confirm yesterday's answer comment. Rerunning checks for the puzzle number
+   before posting, and for its answer marker before commenting.
+4. The repository's `SOCIAL_POSTING_ENABLED` is already `true` according to the brief, so the
+   13:30 UTC cron becomes live once the workflow and Instagram configuration reach GitHub.
+   To complete both manual tests before any scheduled Instagram run, set
+   `IG_AUTH_MODE=instagram_login` first but leave the **GitHub** `IG_ACCESS_TOKEN` secret unset
+   until the dry run passes; live attempts fail closed on missing credentials. Then sync the
+   token shortly before the first manual live test and complete it before 13:30 UTC. Local
+   credentials can be configured earlier. Setting `SOCIAL_POSTING_ENABLED=false` pauses both
+   platforms' scheduled live runs; manual dispatch still requires its own live checkbox.
+
+### Monthly Instagram token refresh
+
+Run locally every **30 days**, before the guard starts blocking posts:
+
+```bash
+python3 tools/instagram_token_refresh.py
+```
+
+The helper requires an unexpired long-lived token at least 24 hours after the previous setup
+or refresh (the first wait is conservative). It saves the returned token and the expiry date
+calculated from Meta's actual `expires_in`, preserving Facebook settings. Answer **y** to sync
+the new secret and expiry to GitHub. No token or app secret is printed, passed as a process
+argument, or added to a commit. No secret-writing GitHub workflow or personal access token is
+introduced. No reminder or automatic local schedule is created by setup.
+
+- With **fewer than 14 days remaining**, the Instagram Login job fails **before any API calls**,
+  including yesterday's answer, so GitHub can notify the human (check Actions notification
+  settings). Exactly 14 days is allowed. A missing/malformed expiry also blocks live calls.
+  `--date` chooses the puzzle; it never overrides the real UTC token-validity date.
+- If expired/revoked, generate a fresh dashboard token and rerun setup; an expired token
+  cannot be refreshed. The helper never silently replaces a failed refresh with an assumed
+  60-day expiry.
+- If GitHub sync fails after refresh, the new token is already saved privately. Run
+  `python3 tools/instagram_token_refresh.py --sync-only`; do not refresh again within 24 hours.
+- Running the older Facebook setup helper rewrites the private file with Facebook settings;
+  if you run it again later, rerun Instagram setup afterward. The Instagram helpers preserve
+  existing Facebook values on every write.
+
+### Configuration compatibility
+
+`IG_AUTH_MODE` defaults to `facebook_login` when unset/empty. That original route still uses
+`META_PAGE_TOKEN` and `IG_USER_ID` with `graph.facebook.com`. `instagram_login` uses only
+`IG_ACCESS_TOKEN` and `IG_USER_ID` with `graph.instagram.com/v27.0`; it does not need
+`META_PAGE_TOKEN`. Both reuse container → poll → publish, duplicate checks and answer comments.
+Facebook always uses its Page token and ignores Instagram mode/expiry. The workflow passes the
+new secrets and variables through without changing its dry-run/default-live controls.
+
+## Existing Facebook setup and Page-linked Instagram fallback (Option A)
 
 1. **Instagram account.** It must be a Professional account (Business or Creator) linked to the
    DAT Games Facebook Page (Instagram: Settings → Account type, and Page linking).
@@ -57,7 +160,7 @@ below and check the current docs if a call is rejected.
    Optional variable if Meta retires the API version in `social_post.py`:
    `gh variable set GRAPH_VERSION --body v28.0 --repo debchamps/datgamesstudio`.
 
-## First live test
+## Facebook live test / Page-linked fallback
 
 1. Actions → **Daily social posts** → Run workflow: platform `facebook`, leave live unticked.
    Read the printed post and check the image link opens.

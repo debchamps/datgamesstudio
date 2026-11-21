@@ -42,6 +42,9 @@ jobs:
           META_PAGE_TOKEN: ${{ secrets.META_PAGE_TOKEN }}
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_AUTH_MODE: ${{ vars.IG_AUTH_MODE }}
+          IG_TOKEN_EXPIRES: ${{ vars.IG_TOKEN_EXPIRES }}
           GRAPH_VERSION: ${{ vars.GRAPH_VERSION }}
           SCHEDULE: ${{ github.event.schedule }}
           INPUT_PLATFORM: ${{ inputs.platform }}

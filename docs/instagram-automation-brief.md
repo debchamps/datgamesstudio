@@ -56,6 +56,11 @@ are published in `daily/social/instagram/`. Instagram lane: Spades, Hearts, Brid
 
 ## 4. Phase 0: verify Meta's current docs (do first, report findings)
 
+Verified 2026-11-21: see [findings and source links](instagram-api-findings.md). Dashboard-generated
+tokens are already long-lived (60 days); use the professional `user_id` from `/me`. Add the
+Instagram product / API setup with Instagram login to a Business app; dashboard labels vary.
+Live calls must stop when fewer than 14 days remain, including expired/missing/invalid expiry.
+
 The details below come from memory of Meta's documentation and must be checked. For
 "Instagram API with Instagram Login" confirm and write down, with links:
 
@@ -131,14 +136,23 @@ works unchanged. (C) A scheduler such as Buffer, Later or Metricool with weekly 
 
 ## 7. Acceptance criteria
 
-- [ ] Phase 0 findings written down, with links, and the brief corrected where it was wrong.
-- [ ] `python3 -m unittest discover -s tools -p 'test_*.py'` and `npm test` pass.
-- [ ] `python3 tools/social_post.py instagram --date 2026-11-23` (dry run, `IG_AUTH_MODE=instagram_login`)
+- [x] Phase 0 findings written down, with links, and the brief corrected where it was wrong.
+- [x] `python3 -m unittest discover -s tools -p 'test_*.py'` and `npm test` pass.
+- [x] `python3 tools/social_post.py instagram --date 2026-11-23` (dry run, `IG_AUTH_MODE=instagram_login`)
       prints the Spades #7 caption and image URL and sends nothing.
-- [ ] Live mode without the secrets stops with a clear message listing what is missing.
-- [ ] No secret in any file, diff, log or test output (`git diff` and `git grep` for token-like strings).
-- [ ] Facebook behaviour and tests are unchanged.
-- [ ] Docs updated; changes committed locally (not pushed) with a message that says what and why.
+- [x] Live mode without the secrets stops with a clear message listing what is missing.
+- [x] No secret in any file, diff, log or test output (repository credential-pattern scan and diff review).
+- [x] Facebook posting behaviour and tests are unchanged (shared error reporting now withholds unsafe API details).
+- [x] Docs updated; changes committed locally (not pushed) with a message that says what and why.
+
+Implementation validation (2026-11-21): 44 Python tests and 15 JavaScript tests pass; the
+requested dry run succeeds without warnings. The missing-secrets check uses an isolated empty
+environment, with local credential loading disabled. Helpers and posting use only Python's
+standard library. The new helpers preserve the private file's Facebook settings and include
+`--sync-only` recovery after an interrupted GitHub sync. No private credential file was read,
+no token was generated, no account/dashboard setting was changed, and no post was sent during
+implementation. Sections 5 and 8 still require the human; [the setup guide](social-automation.md)
+lists exact steps. No reminder or automatic refresh schedule has been created.
 
 ## 8. First live test (HUMAN, after the human pushes)
 
@@ -147,7 +161,7 @@ works unchanged. (C) A scheduler such as Buffer, Later or Metricool with weekly 
 2. Run it again with live ticked for today's puzzle. Check the post on @datgamesstudio. Check the
    next day that yesterday's answer was commented.
 3. Only then rely on the 13:30 UTC schedule (the variable `SOCIAL_POSTING_ENABLED` is already `true`).
-4. Put a reminder to run `instagram_token_refresh.py` about every 45 days; the expiry guard fails
+4. Put a reminder to run `instagram_token_refresh.py` about every 30 days; the expiry guard fails
    the job 14 days before the token ends.
 
 ## 9. Out of scope
