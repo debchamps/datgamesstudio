@@ -1,0 +1,14 @@
+name = "datgames-region"
+main = "region.mjs"
+compatibility_date = "2026-11-27"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://www.datgamesstudio.com,https://datgamesstudio.com"
+
+[dev]
+ip = "127.0.0.1"
+port = 8787
+
+[observability]
+enabled = false

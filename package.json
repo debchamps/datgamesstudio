@@ -2,7 +2,7 @@
   "name": "dat-games-studio-site",
   "private": true,
   "scripts": {
-    "test": "node --experimental-vm-modules --test tests/analytics.test.cjs && python3 -m unittest discover -s tools -p 'test_*.py'"
+    "test": "node --experimental-vm-modules --test tests/*.test.cjs && python3 -m unittest discover -s tools -p 'test_*.py'"
   },
   "devDependencies": {
     "jsdom": "29.1.1"

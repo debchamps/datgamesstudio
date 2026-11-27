@@ -89,6 +89,39 @@ The tracker sends no card identities, bids, invite codes, or form contents.
 Custom Link URL drops query strings. Existing automatic GA4 collection is separate.
 This is section/button tracking, not a pixel heatmap or session recording.
 
+## Regional recommendations (November 27, 2026)
+
+The homepage and play hub emit `recommendation_view` once the final featured set
+is visible. It uses Game `all_games`, and Placement `hero_featured` or `play_hub`.
+`recommendation_lookup` records an attempted lookup's Result: `success`, `late`,
+`timeout` or `unavailable`. Cached and local-preview visits do not perform a lookup.
+
+Recommendation parameters are `recommendation_region` (the editorial profile),
+`recommendation_source` (`ip`, `cache`, `locale`, `default`, `disabled`),
+`recommendation_set` (three pipe-separated game slugs), and
+`recommendation_version` (`regional-v1`). Country codes and IP addresses are not
+added as custom recommendation parameters. Existing GA4 automatic collection is
+separate from these custom fields.
+
+`play_click` from the homepage or play hub also reports
+`recommendation_position`: 1–3 within the featured set, or 0 for another game.
+The selected destination and context are saved in tab session storage. On that
+destination's game page only, an entry less than 30 minutes old contributes the
+same context and `entry_placement` to gameplay events, including `game_engaged`,
+`round_finish` and `match_finish`. Context from another game, invalid data and
+expired entries are ignored. A fresh homepage/hub visit clears previous click
+attribution. Storage denial never prevents play or basic analytics.
+
+Register the four recommendation parameters, `recommendation_position`, and
+`entry_placement` as event-scoped custom dimensions before using them in standard
+GA4 reports. These definitions have **not** been created in the live property by
+this implementation. Existing Game and Placement dimensions continue to work.
+Use unique visitors with `game_engaged` divided by visitors with
+`recommendation_view` for the play funnel; `game_start` includes automatic deals.
+The attribution describes the entry into a game, not proof of an install.
+
+Implementation and operations: [regional recommendations](regional-recommendations.md).
+
 ## Verification and release
 
 Tracking changes are local until the website repository is published. No commit

@@ -22,8 +22,8 @@ test('clicks identify game and placement, including nested icons and store devel
   const { dom, document: d, events } = page();
   d.querySelector('.hero-play a span').click();
   assert.equal(events.at(-1).name, 'play_click');
-  assert.equal(events.at(-1).game, 'callbreak');
-  assert.equal(events.at(-1).placement, 'hero');
+  assert.equal(events.at(-1).game, 'hearts');
+  assert.equal(events.at(-1).placement, 'hero_featured');
   d.querySelector('#game-hearts a[href*="apps.apple.com"]').click();
   assert.equal(events.at(-1).game, 'hearts');
   assert.equal(events.at(-1).store, 'app_store');

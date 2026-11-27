@@ -29,8 +29,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/styles.css?v=7">
+    <link rel="stylesheet" href="/assets/styles.css?v=8">
     <script defer src="/assets/main.js"></script>
+    <script defer src="/assets/game-catalog.js?v=1"></script>
+    <script defer src="/assets/recommendations-config.js?v=1"></script>
+    <script defer src="/assets/recommendations.js?v=1"></script>
     <script defer src="/assets/daily-teaser.js?v=1"></script>
     <script type="application/ld+json">
     {
@@ -84,16 +87,33 @@
     </header>
 
     <main id="main">
-      <section class="hero" aria-labelledby="hero-title">
+      <section class="hero hero-regional" aria-labelledby="hero-title" data-recommendations="hero_featured">
         <div class="hero-bg" aria-hidden="true"></div>
         <div class="hero-inner">
           <div class="hero-content">
             <a class="hero-pill" href="/daily/" data-placement="hero_pill"><span>New</span> The Daily Trick: a free card puzzle every day →</a>
-            <h1 id="hero-title">Classic card games and clever puzzles, <em>on every phone.</em></h1>
-            <p class="hero-copy">Hearts, Spades, Callbreak, Bridge, 29, Tarneeb, Hokm and more — plus the Card Adda all-in-one and the Snake Uncoil puzzle. Offline play, smart AI opponents, no signup. Now on Android and iPhone.</p>
+            <h1 id="hero-title">Classic card games.<br><em>Your next great hand.</em></h1>
+            <p class="hero-copy" data-regional-copy>Hearts, Callbreak and a clever puzzle — ready when you are. Play in your browser, or get our apps for Android and iPhone.</p>
             <div class="hero-play">
-              <a class="play-big play-big-hero" href="/play/callbreak/"><span class="pb-icon" aria-hidden="true">▶</span><span><strong>Play Callbreak now</strong><small>Free in your browser · no download</small></span></a>
-              <p class="hero-play-more">or play <a href="/play/twenty-nine/">29</a> · <a href="/play/hearts/">Hearts</a> · <a href="/play/spades/">Spades</a> · <a href="/play/bray/">Bray</a> · <a href="/play/tarneeb/">Tarneeb</a> · <a href="/play/hokm/">Hokm</a> · <a href="/play/whist/">Whist</a> · <a href="/play/snake-uncoil/">Snake Uncoil</a></p>
+              <p class="hero-play-promise">Free in your browser · No download · No signup</p>
+              <div class="hero-game-grid" data-featured-games data-game-set="hearts|callbreak|snake-uncoil" data-placement="hero_featured">
+                <article class="hero-game" data-featured-game="hearts" data-recommendation-position="1">
+                  <img src="/assets/img/icons/hearts.png" alt="" width="44" height="44">
+                  <div class="hero-game-info"><h2>Hearts</h2><p>Dodge hearts. Shoot the moon.</p></div>
+                  <a class="hero-game-play" href="/play/hearts/" aria-label="Play Hearts free in your browser"><span aria-hidden="true">▶</span> Play</a>
+                </article>
+                <article class="hero-game" data-featured-game="callbreak" data-recommendation-position="2">
+                  <img src="/assets/img/icons/callbreak.png" alt="" width="44" height="44">
+                  <div class="hero-game-info"><h2>Callbreak</h2><p>Call your tricks. Spades are trump.</p></div>
+                  <a class="hero-game-play" href="/play/callbreak/" aria-label="Play Callbreak free in your browser"><span aria-hidden="true">▶</span> Play</a>
+                </article>
+                <article class="hero-game" data-featured-game="snake-uncoil" data-recommendation-position="3">
+                  <img src="/assets/img/icons/snakeuncoil.png" alt="" width="44" height="44">
+                  <div class="hero-game-info"><h2>Snake Uncoil</h2><p>A change of pace: free every snake.</p></div>
+                  <a class="hero-game-play" href="/play/snake-uncoil/" aria-label="Play Snake Uncoil free in your browser"><span aria-hidden="true">▶</span> Play</a>
+                </article>
+              </div>
+              <a class="hero-all-games" href="/play/" data-placement="hero_all_games">Explore all 9 browser games <span aria-hidden="true">→</span></a>
             </div>
             <div class="hero-actions" aria-label="Download links">
               <a class="store-badge" href="https://play.google.com/store/apps/developer?id=DAT+Games&amp;utm_source=website&amp;utm_medium=organic&amp;utm_campaign=homepage&amp;utm_content=hero" rel="noopener" aria-label="Get our games on Google Play">
@@ -114,13 +134,13 @@
           </div>
           <div class="hero-media" aria-hidden="true">
             <div class="phone phone-back">
-              <img src="/assets/img/screens/bridge.webp" alt="" loading="eager" width="1080" height="1920">
+              <img src="/assets/img/screens/callbreak.webp" alt="" loading="lazy" width="1080" height="1920" data-regional-screen="1">
             </div>
             <div class="phone phone-front">
-              <img src="/assets/img/screens/hearts.webp" alt="" loading="eager" width="1080" height="1920">
+              <img src="/assets/img/screens/hearts.webp" alt="" loading="lazy" width="1080" height="1920" data-regional-screen="0">
             </div>
             <div class="phone phone-side">
-              <img src="/assets/img/screens/snakeuncoil.webp" alt="" loading="eager" width="1080" height="1920">
+              <img src="/assets/img/screens/snakeuncoil.webp" alt="" loading="lazy" width="1080" height="1920" data-regional-screen="2">
             </div>
           </div>
         </div>

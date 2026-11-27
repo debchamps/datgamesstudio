@@ -24,6 +24,39 @@
     ? (pageGame ? "guide" : "guide_hub") : "other";
   window.DAT_GAME = pageType === "game" ? pageGame : "";
 
+  const ENTRY_KEY = "dat:recommendation-entry:v1";
+  const REGIONS = ["us", "india", "bangladesh", "middle-east", "iran", "global"];
+  const SOURCES = ["ip", "cache", "locale", "default", "disabled"];
+  const GAME_SLUGS = new Set(["hearts", "spades", "callbreak", "twenty-nine", "bray", "tarneeb", "hokm", "whist", "snake-uncoil"]);
+  function recommendationContext(value) {
+    if (!value || !REGIONS.includes(value.recommendation_region) || !SOURCES.includes(value.recommendation_source)
+      || value.recommendation_version !== "regional-v1" || typeof value.recommendation_set !== "string") return {};
+    const games = value.recommendation_set.split("|");
+    if (games.length !== 3 || new Set(games).size !== 3 || games.some(game => !GAME_SLUGS.has(game))) return {};
+    return {
+      recommendation_region: value.recommendation_region,
+      recommendation_source: value.recommendation_source,
+      recommendation_set: value.recommendation_set,
+      recommendation_version: value.recommendation_version,
+    };
+  }
+  let entryContext = {};
+  try {
+    const entry = JSON.parse(sessionStorage.getItem(ENTRY_KEY));
+    if (pageType === "game" && entry?.game === pageGame && Number.isFinite(entry.at)
+      && entry.at <= Date.now() && Date.now() - entry.at < 30 * 60 * 1000) {
+      const context = recommendationContext(entry);
+      if (Object.keys(context).length && Number.isInteger(entry.recommendation_position)
+        && entry.recommendation_position >= 0 && entry.recommendation_position <= 3
+        && ["hero_featured", "play_band", "play_hub_card", "game_card"].includes(entry.entry_placement)) {
+        entryContext = { ...context, recommendation_position: entry.recommendation_position, entry_placement: entry.entry_placement };
+      }
+    }
+    // A new catalog visit must not attribute a later direct game visit to an
+    // earlier click. The next deliberate game click writes a fresh entry.
+    if (["home", "play_hub"].includes(pageType)) sessionStorage.removeItem(ENTRY_KEY);
+  } catch (_) { /* Storage can be unavailable in private or embedded browsers. */ }
+
   // Local verification must not add synthetic players or events to production.
   const local = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname) || location.protocol === "file:";
   window.datTrack = (name, params = {}) => {
@@ -31,7 +64,8 @@
     try {
       window.gtag("event", name, {
         send_to: GA_ID, page_path: path, page_type: pageType,
-        game: pageGame || "none", ...params,
+        game: pageGame || "none",
+        ...entryContext, ...recommendationContext(window.DATRecommendationContext), ...params,
       });
     } catch (_) { /* Analytics must never interrupt a game or navigation. */ }
   };
@@ -137,6 +171,19 @@
       // Drop query strings, which can contain campaign tokens or user input.
       link_url: url.origin + url.pathname + url.hash,
     };
+    if (url.origin === location.origin && /^\/play\/[^/]+\/$/.test(url.pathname) && ["home", "play_hub"].includes(pageType)) {
+      const context = recommendationContext(window.DATRecommendationContext);
+      if (Object.keys(context).length) {
+        const rank = context.recommendation_set.split("|").indexOf(params.game);
+        params.recommendation_position = rank + 1;
+        try {
+          sessionStorage.setItem(ENTRY_KEY, JSON.stringify({
+            ...context, game: params.game, recommendation_position: rank + 1,
+            entry_placement: params.placement, at: Date.now(),
+          }));
+        } catch (_) {}
+      }
+    }
     if (["play.google.com", "apps.apple.com"].includes(url.hostname)) {
       window.datTrack("store_click", { ...params, store: url.hostname === "apps.apple.com" ? "app_store" : "google_play" });
     } else if (url.origin === location.origin && /^\/daily\//.test(url.pathname)) {
